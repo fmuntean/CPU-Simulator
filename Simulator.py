@@ -1,49 +1,70 @@
 from threading import Thread
 import time
 from ScreenMemory import ScreenMemory
-import mc6800
 import debugger
-#from acia import UART
-from st16c1550 import UART
+
 
 import curses
 
-mem = bytearray(0xFFFF+1) # 64KB
+cmdPrompt = "> "
 
+"""
+:10246200464C5549442050524F46494C4500464C33
+|||||||||||                              CC->Checksum
+|||||||||DD->Data
+|||||||TT->Record Type
+|||AAAA->Address
+|LL->Record Length
+:->Colon
+"""
+def loadHex(mem,file):
+    lines = []
+    with open(file,mode="r") as f:
+        lines = f.readlines()
+    for l in lines:
+        if len(l.strip())==0:
+            continue
+        if l.startswith('//'):
+            continue
+        if l.startswith(':') & (l[7:9] == '00'):
+            count = int(l[1:3],base=16)
+            addr = int(l[3:7],base=16)
+            for i in range(0,count):
+                d = l[9+2*i:9+2*i+2]
+                mem[addr]= int(d,base=16)
+                addr+=1
 
-ser = UART(0xFFF0) # Serial 
+# https://en.wikipedia.org/wiki/SREC_(file_format)
+# loading motorola s19 files
+# currently supporting S1 records
+def loadS19(mem,file):
+    lines = []
+    with open(file,mode="r") as f:
+        lines = f.readlines()
+    for l in lines:
+        if len(l.strip())==0:
+            continue
+        if l.startswith('//'):
+            continue
+        if l.startswith('S1'):
+            count = int(l[2:4],base=16)
+            addr = int(l[4:8],base=16)
+            for i in range(0,count-3):
+                d = l[8+2*i:8+2*i+2]
+                mem[addr]= int(d,base=16)
+                addr+=1
 
-
-def fetchMemory(address):
-    if (ser.match(address)):
-        return ser.read(address)
-    else:
-        return mem[address & 0xFFFF]
-
-def setMemory(address, value):
-    if (ser.match(address)):
-        ser.write(address,value)
-    else:
-        mem[address & 0xFFFF] = value
-
-#debugger.loadHex(mem,"mc6802.hex")
-debugger.loadHex(mem,"swtb2.hex")
-debugger.loadHex(mem,"TB_6800.hex")
-
-cpu = mc6800.MC6800(fetchMemory,setMemory)
-
-debugger = debugger.Debugger(cpu,mem)
 
 def topRefresh(screen,padTop,debugger):
     y, x = screen.getmaxyx()
     padTop.clear()
-    topStr = f"{debugger.list_regs(cpu)}| |{debugger.get_opcodes(cpu.PC)}| {debugger.list_cmd(cpu.PC)}"
+    topStr = f"{debugger.list_regs()}| |{debugger.get_opcodes()}| {debugger.list_cmd()}"
     padTop.addstr(topStr)
     padTop.refresh(0,0,0,0,0, x-1 )
 
-cmdPrompt = "> "
 
-def main(screen):
+
+def main(screen, debugger):
     print(f"Screen Size: {curses.LINES}x{curses.COLS}")
     curses.curs_set(1) # make cursor invisible
     curses.echo(0)
@@ -68,7 +89,7 @@ def main(screen):
         screen.erase()
         topRefresh(screen,padTop,debugger)
 
-        winMem.refresh(mem,debugger)
+        winMem.refresh(debugger)
         
         cmdDebug = ''
         while True:
@@ -204,7 +225,17 @@ def executeCommand(cmdDebug):
         return "ok"
     return ret
 
-
+def start(debugger):
+    #curses.wrapper(main) #this crashes
+    scr = curses.initscr()
+    curses.cbreak()
+    scr.keypad(True)
+    try:
+        curses.start_color()
+    except:
+        pass
+    main(scr, debugger)
+    curses.endwin()
 
 if __name__ == '__main__':
     #curses.wrapper(main) #this crashes

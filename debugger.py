@@ -9,51 +9,6 @@ def cmd_run(dbg):
         dbg.log(dbg.list_cmd(dbg.cpu.PC))    
         step = dbg.cpu.step()
 
-"""
-:10246200464C5549442050524F46494C4500464C33
-|||||||||||                              CC->Checksum
-|||||||||DD->Data
-|||||||TT->Record Type
-|||AAAA->Address
-|LL->Record Length
-:->Colon
-"""
-def loadHex(mem,file):
-    lines = []
-    with open(file,mode="r") as f:
-        lines = f.readlines()
-    for l in lines:
-        if len(l.strip())==0:
-            continue
-        if l.startswith('//'):
-            continue
-        if l.startswith(':') & (l[7:9] == '00'):
-            count = int(l[1:3],base=16)
-            addr = int(l[3:7],base=16)
-            for i in range(0,count):
-                d = l[9+2*i:9+2*i+2]
-                mem[addr]= int(d,base=16)
-                addr+=1
-
-# https://en.wikipedia.org/wiki/SREC_(file_format)
-# loading motorola s19 files
-# currently supporting S1 records
-def loadS19(mem,file):
-    lines = []
-    with open(file,mode="r") as f:
-        lines = f.readlines()
-    for l in lines:
-        if len(l.strip())==0:
-            continue
-        if l.startswith('//'):
-            continue
-        if l.startswith('S1'):
-            count = int(l[2:4],base=16)
-            addr = int(l[4:8],base=16)
-            for i in range(0,count-3):
-                d = l[8+2*i:8+2*i+2]
-                mem[addr]= int(d,base=16)
-                addr+=1
 
 
 class Debugger:
@@ -82,34 +37,35 @@ class Debugger:
             file1.close()
         return
 
-    def list_cmd(self,address):
+    def list_cmd(self,address=None):
+        address = self.cpu.PC if address == None else address
         o = self.cpu.getOpcode(address)
         if o == None:
             return "unknown"
         ret = o.decode(self.cpu, address)
         return ret
     
-    def get_opcodes(self,address):
+    def get_opcodes(self,address=None):
+        address = self.cpu.PC if address==None else address
         o = self.cpu.getOpcode(address)
         if o == None:
             return f"{self.mem[address & 0xFFFF]:02X}"
         ret=self.mem[address:address+o.length]
         return ret.hex(' ').upper()
 
-    def list_regs(self,cpu):
-        return cpu.getRegistries()
+    def list_regs(self):
+        return self.cpu.getRegisters()
     
-    def list_mem(self,mem,start,length):
+    def list_mem(self,start,length):
         i = start
         ret = []
         for x in range(0, length // 8):
             s=f"{(i+8*x)&0xFFFF:04X}:"
             for y in range(0,8):
-                s+=f" {mem[(i+8*x+y) & 0xFFFF]:02X}"
+                s+=f" {self.mem[(i+8*x+y) & 0xFFFF]:02X}"
             ret.append(s)
         return ret
 
-    
 
     def execute(self,cmd):
         cmd = cmd.lower()

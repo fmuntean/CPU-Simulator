@@ -17,10 +17,10 @@ class ScreenMemory:
         for i in range(0,pads):
             self.pads.append(curses.newpad(8,30))
 
-    def refresh(self,mem,debugger:Debugger):
+    def refresh(self,debugger:Debugger):
         for i,p in enumerate(self.pads):
             p.clear()
-            text = debugger.list_mem(mem,debugger.displayStart+i*64,64)
+            text = debugger.list_mem(debugger.displayStart+i*64,64)
             for c,s in enumerate(text):
                 p.addstr(c,0,s)
                 #p.clrtoeol()
