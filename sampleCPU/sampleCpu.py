@@ -1,3 +1,28 @@
+class myCPU:
+    
+    def reset(self):
+        self.PC = 0
+        self.registers = [0,0]
+        self.CARRY = False
+        self.ZERO = True
+
+    def __init__(self,fetchMemory,setMemory):
+        self.fetchMemory = fetchMemory
+        self.setMemory = setMemory
+        self.reset()
+        
+    def step(self):
+        op = list(filter(lambda x: x.code == self.fetchMemory(self.PC % 255), opcodes))[0]
+        return op.execute(self)
+
+    def getOpcode(self,index):
+        op =  list(filter(lambda x: x.code == self.fetchMemory(index), opcodes))[0]
+        return op
+    
+    def getRegisters(self):
+        return "|PC:{0:04X}|A:{1:02X}|B:{2:02X}|Z:{3:d}|C:{4:d}|".format(self.PC, self.registers[0], self.registers[1], self.ZERO, self.CARRY )
+
+
 
 class opcode:
     length= 0
@@ -190,25 +215,5 @@ opcodes = [
     opcode(19,1,"LSL B") 
 ]
 
-class myCPU:
-    
-    def reset(self):
-        self.PC = 0
-        self.registers = [0,0]
-        self.CARRY = False
-        self.ZERO = True
 
-    def __init__(self):
-        self.reset()
-        
-    def step(self):
-        op = list(filter(lambda x: x.code == self.fetchMemory(self.PC % 255), opcodes))[0]
-        return op.execute(self)
-
-    def getOpcode(self,index):
-        op =  list(filter(lambda x: x.code == self.fetchMemory(index), opcodes))[0]
-        return op
-    
-    def getRegistries(self):
-        return "|PC:{0:04X}|A:{1:02X}|B:{2:02X}|Z:{3:d}|C:{4:d}|".format(self.PC, self.registers[0], self.registers[1], self.ZERO, self.CARRY )
     
