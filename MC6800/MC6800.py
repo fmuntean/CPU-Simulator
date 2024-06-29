@@ -19,6 +19,127 @@
 #   C = Carry (set when was a cary from bit7)
 
 
+class MC6800:
+    # Reset Pointer                  = 0xFFFF-1
+    # Non Maskable Interrupt Pointer = 0xFFFF-3
+    # Software Interrupt Pointer     = 0xFFFF-5
+    # Internal Interrupt Pointer     = 0xFFFF-7
+
+    def __init__(self,fetchMemory,setMemory):
+        self.fetchMemory = fetchMemory
+        self.setMemory = setMemory
+        self.reset()
+
+    def reset(self):
+        self.PC = self.fetchMemory(0xFFFE)*256+self.fetchMemory(0xFFFF)
+        self.A = 0
+        self.B = 0
+        self.IX = 0
+        self.SP = 0
+        self.SR = 0xC0 # highest two bits are always 11 H I N Z V C
+
+    def getRegister(self, reg):
+        match reg:
+            case "A":
+                return self.A
+            case "B":
+                return self.B
+            case "IX":
+                return self.IX
+            case "SP":
+                return self.SP
+            case "SR":
+                return self.SR
+            case "PC":
+                return self.PC
+        
+    def setRegister(self, reg, val):
+        match reg:
+            case "A":
+                self.A = val & 0xFF
+            case "B":
+                self.B = val & 0xFF
+            case "IX":
+                self.IX = val & 0xFFFF
+            case "SP":
+                self.SP = val & 0xFFFF
+            case "SR":
+                self.SR = (val | 0xC0) & 0xFF
+            case "PC":
+                self.PC = val & 0xFFFF
+
+    def getFlagH(self):
+        return self.SR & 0x20
+
+    def setFlagC(self,regOut):
+        self.SR = self.SR | 1 if (regOut<0 or regOut>255) else self.SR & 0xFE
+
+    def setFlagV(self,reg1in,reg2in,regOut):
+        v = ((((reg1in & 0x80) == 0x80) & ((reg2in & 0x80) == 0x80) & ((regOut & 0x80) != 0x80)) #overflow
+		| (((reg1in & 0x80) != 0x80) & ((reg2in & 0x80) != 0x80) & ((regOut & 0x80) == 0x80)))  #overflow
+        self.SR = self.SR | 2 if (v) else self.SR & 0xFD   
+
+    def resetFlagV(self):
+        self.SR = self.SR & 0xFD
+
+    def setFlagZ(self,reg1in):
+        self.SR = self.SR | 4 if (reg1in ==0) else self.SR & 0xFB
+    
+    def setFlagN(self,regOut):
+        n = (regOut & 0x80) > 0
+        self.SR = self.SR | 8 if (n) else self.SR & 0xF7
+    
+    def setFlagI(self,i):
+        self.SR = self.SR | 16 if (i) else self.SR & 0xEF
+    
+    def setFlagH(self,reg1in, reg2in, regOut):
+        h = ((reg1in & reg2in ) | ((reg1in | reg2in) & (0xFF - regOut)) ) & 8 > 0 
+        self.SR = self.SR | 32 if (h) else self.SR & 0xDF
+
+    def setFlagNZ(self, reg1in):
+        self.setFlagZ(reg1in)
+        self.setFlagN(reg1in)
+
+    def setFlagNZVC(self,reg1in,reg2in,regOut):
+        self.setFlagC(regOut)
+        self.setFlagV(reg1in,reg2in,regOut)
+        self.setFlagZ(regOut)
+        self.setFlagN(regOut)
+
+    def setFlagHNZVC(self,reg1in,reg2in,regOut):
+        self.setFlagC(regOut)
+        self.setFlagV(reg1in,reg2in,regOut)
+        self.setFlagZ(regOut)
+        self.setFlagN(regOut)
+        self.setFlagH(reg1in,reg2in,regOut)
+
+
+    def resetFlagC(self):
+        self.SR & 0xFE
+
+    def getFlagC(self):
+        return self.SR & 1
+    
+    def getFlagZ(self):
+        return self.SR & 4
+
+    def getFlagN(self):
+        return self.SR & 0x08
+        
+    def step(self):
+        ops = list(filter(lambda x: x.code == self.fetchMemory(self.PC & 0xFFFF), opcodes))
+        op = ops[0] if ops else None
+        return op.execute(self) if op else False
+
+    def getOpcode(self,index):
+        ops = list(filter(lambda x: x.code == self.fetchMemory(index), opcodes)) 
+        op = ops[0] if ops else None
+        return op
+    
+    def getRegisters(self):
+        # status register SR highest two bits are always 11 H I N Z V C
+        return f"|PC:{self.PC:04X}|A:{self.A:02X}|B:{self.B:02X}|IX:{self.IX:04X}|SP:{self.SP:04X}||H{self.SR>>5&0x01} I{self.SR>>4&0x01} N{self.SR>>3&0x01} Z{self.SR>>2&0x01} V{self.SR>>1&0x01} C{self.SR&0x01}"
+
 
 
 class opcode:
@@ -1757,123 +1878,3 @@ opcodes = [
 
 ]
 
-class MC6800:
-    # Reset Pointer                  = 0xFFFF-1
-    # Non Maskable Interrupt Pointer = 0xFFFF-3
-    # Software Interrupt Pointer     = 0xFFFF-5
-    # Internal Interrupt Pointer     = 0xFFFF-7
-
-    def __init__(self,fetchMemory,setMemory):
-        self.fetchMemory = fetchMemory
-        self.setMemory = setMemory
-        self.reset()
-
-    def reset(self):
-        self.PC = self.fetchMemory(0xFFFE)*256+self.fetchMemory(0xFFFF)
-        self.A = 0
-        self.B = 0
-        self.IX = 0
-        self.SP = 0
-        self.SR = 0xC0 # highest two bits are always 11 H I N Z V C
-
-    def getRegister(self, reg):
-        match reg:
-            case "A":
-                return self.A
-            case "B":
-                return self.B
-            case "IX":
-                return self.IX
-            case "SP":
-                return self.SP
-            case "SR":
-                return self.SR
-            case "PC":
-                return self.PC
-        
-    def setRegister(self, reg, val):
-        match reg:
-            case "A":
-                self.A = val & 0xFF
-            case "B":
-                self.B = val & 0xFF
-            case "IX":
-                self.IX = val & 0xFFFF
-            case "SP":
-                self.SP = val & 0xFFFF
-            case "SR":
-                self.SR = (val | 0xC0) & 0xFF
-            case "PC":
-                self.PC = val & 0xFFFF
-
-    def getFlagH(self):
-        return self.SR & 0x20
-
-    def setFlagC(self,regOut):
-        self.SR = self.SR | 1 if (regOut<0 or regOut>255) else self.SR & 0xFE
-
-    def setFlagV(self,reg1in,reg2in,regOut):
-        v = ((((reg1in & 0x80) == 0x80) & ((reg2in & 0x80) == 0x80) & ((regOut & 0x80) != 0x80)) #overflow
-		| (((reg1in & 0x80) != 0x80) & ((reg2in & 0x80) != 0x80) & ((regOut & 0x80) == 0x80)))  #overflow
-        self.SR = self.SR | 2 if (v) else self.SR & 0xFD   
-
-    def resetFlagV(self):
-        self.SR = self.SR & 0xFD
-
-    def setFlagZ(self,reg1in):
-        self.SR = self.SR | 4 if (reg1in ==0) else self.SR & 0xFB
-    
-    def setFlagN(self,regOut):
-        n = (regOut & 0x80) > 0
-        self.SR = self.SR | 8 if (n) else self.SR & 0xF7
-    
-    def setFlagI(self,i):
-        self.SR = self.SR | 16 if (i) else self.SR & 0xEF
-    
-    def setFlagH(self,reg1in, reg2in, regOut):
-        h = ((reg1in & reg2in ) | ((reg1in | reg2in) & (0xFF - regOut)) ) & 8 > 0 
-        self.SR = self.SR | 32 if (h) else self.SR & 0xDF
-
-    def setFlagNZ(self, reg1in):
-        self.setFlagZ(reg1in)
-        self.setFlagN(reg1in)
-
-    def setFlagNZVC(self,reg1in,reg2in,regOut):
-        self.setFlagC(regOut)
-        self.setFlagV(reg1in,reg2in,regOut)
-        self.setFlagZ(regOut)
-        self.setFlagN(regOut)
-
-    def setFlagHNZVC(self,reg1in,reg2in,regOut):
-        self.setFlagC(regOut)
-        self.setFlagV(reg1in,reg2in,regOut)
-        self.setFlagZ(regOut)
-        self.setFlagN(regOut)
-        self.setFlagH(reg1in,reg2in,regOut)
-
-
-    def resetFlagC(self):
-        self.SR & 0xFE
-
-    def getFlagC(self):
-        return self.SR & 1
-    
-    def getFlagZ(self):
-        return self.SR & 4
-
-    def getFlagN(self):
-        return self.SR & 0x08
-        
-    def step(self):
-        ops = list(filter(lambda x: x.code == self.fetchMemory(self.PC & 0xFFFF), opcodes))
-        op = ops[0] if ops else None
-        return op.execute(self) if op else False
-
-    def getOpcode(self,index):
-        ops = list(filter(lambda x: x.code == self.fetchMemory(index), opcodes)) 
-        op = ops[0] if ops else None
-        return op
-    
-    def getRegistries(self):
-        # status register SR highest two bits are always 11 H I N Z V C
-        return f"|PC:{self.PC:04X}|A:{self.A:02X}|B:{self.B:02X}|IX:{self.IX:04X}|SP:{self.SP:04X}||H{self.SR>>5&0x01} I{self.SR>>4&0x01} N{self.SR>>3&0x01} Z{self.SR>>2&0x01} V{self.SR>>1&0x01} C{self.SR&0x01}"

@@ -1,7 +1,7 @@
 from threading import Thread
 import time
 from ScreenMemory import ScreenMemory
-import debugger
+from debugger import Debugger
 
 
 import curses
@@ -137,7 +137,7 @@ def main(screen, debugger):
                 winMem.resize()
                 screen.clear()
                 screen.refresh()
-                winMem.refresh(mem,debugger)
+                winMem.refresh(debugger)
                 
                 #winTop.resize(1,x) # curses.newwin(1,x,0,0)
                 winBot.resize(1,x) # curses.newwin(1,x,11,0)
@@ -154,7 +154,7 @@ def main(screen, debugger):
             break
         
         #screen.refresh()
-        ret = executeCommand(cmdDebug)    
+        ret = executeCommand(debugger,cmdDebug)    
 
         if ret != None:    
             winBot.addstr("  "+ret)
@@ -164,7 +164,7 @@ def main(screen, debugger):
 
         #screen.refresh()
         
-def executeCommand(cmdDebug):
+def executeCommand(debugger,cmdDebug):
     if len(cmdDebug)==0:
         return None
     
