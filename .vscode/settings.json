@@ -1,0 +1,15 @@
+{
+    "cSpell.words": [
+        "acia",
+        "addstr",
+        "cbreak",
+        "endwin",
+        "getch",
+        "newpad",
+        "newwin",
+        "nodelay",
+        "regs",
+        "swtb",
+        "UART"
+    ]
+}
