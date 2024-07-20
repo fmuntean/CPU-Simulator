@@ -7,17 +7,34 @@ def cmd_run(dbg):
         if (dbg.breakpoint == dbg.cpu.PC):
             return
         dbg.log(dbg.list_cmd(dbg.cpu.PC))    
-        step = dbg.cpu.step()
+        try:
+            step = dbg.cpu.step()
+        except ROMError as err:
+            return err
 
-
+class ROMError(Exception): ...
 
 class Debugger:
+    protect = [] # an array of tuples of memory ranges to protect from writing
     def __init__(self,cpu,mem):
         self.cpu = cpu
         self.mem = mem
         self.displayStart = 0
         self.breakpoint = -1 #means disabled
         self.logging = False
+
+    def setMemoryProtected(address, value):
+        for start,end in Debugger.protect:
+            if address>=start and address<=end:
+                raise ROMError(f"ROM protected Area: 0x{address:4X}")
+        Debugger.setMemory(address,value)
+        
+    def setROM(self,fromAddr,toAddr):
+        #we add a protect range
+        Debugger.protect.append([fromAddr,toAddr])
+        #we hijack the cpu setMemory method
+        Debugger.setMemory = self.cpu.setMemory
+        self.cpu.setMemory = Debugger.setMemoryProtected
 
     def log(self,line):
         if self.logging:
@@ -90,8 +107,23 @@ class Debugger:
             self.breakpoint = v
             return "ok"
             
-        
-        if cmd == "run":
+        if cmd.startswith("jump"):
+            s = cmd.split(',')
+            if len(s)>1:
+                if s[1].startswith('0x'):
+                    a = int(s[1],base=16)
+                else:
+                    a= int(s[1],base=10)
+                self.cpu.PC=a
+
+        if cmd.startswith("run"):
+            s = cmd.split(',')
+            if len(s)>1:
+                if s[1].startswith('0x'):
+                    a = int(s[1],base=16)
+                else:
+                    a= int(s[1],base=10)
+                self.cpu.PC=a
             thread = Thread(target=cmd_run, args=(self,))
             thread.start()
             return thread

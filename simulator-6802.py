@@ -19,6 +19,8 @@ def setMemory(address, value):
     if (ser.match(address)):
         ser.write(address,value)
     else:
+        #if address>0xE000:
+        #    raise ValueError(f"Modifying ROM at 0x{address:4X}") 
         mem[address & 0xFFFF] = value
 
 #debugger.loadHex(mem,"mc6802.hex")
@@ -29,6 +31,13 @@ cpu = MC6800(fetchMemory,setMemory)
 
 debugger = Debugger(cpu,mem)
 
+simulator = Simulator.Simulator()
+simulator.Terminal = ser
+
 if __name__ == '__main__':
-   Simulator.loadHex(mem,"MC6800/mc6802.hex")
-   Simulator.start(debugger)
+   #Simulator.loadHex(mem,"MC6800/mc6802.hex")
+   Simulator.loadHex(mem,"bios.hex")
+   Simulator.loadHex(mem,"TSCMicroBasicPlus/MicroBasROM.hex")
+   cpu.reset()
+   debugger.setROM(0xE000,0xFFEF)
+   simulator.start(debugger)
