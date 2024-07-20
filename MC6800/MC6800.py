@@ -74,6 +74,9 @@ class MC6800:
     def setFlagC(self,regOut):
         self.SR = self.SR | 1 if (regOut<0 or regOut>255) else self.SR & 0xFE
 
+    def getFlagV(self):
+        return self.SR & 0x02
+
     def setFlagV(self,reg1in,reg2in,regOut):
         v = ((((reg1in & 0x80) == 0x80) & ((reg2in & 0x80) == 0x80) & ((regOut & 0x80) != 0x80)) #overflow
 		| (((reg1in & 0x80) != 0x80) & ((reg2in & 0x80) != 0x80) & ((regOut & 0x80) == 0x80)))  #overflow
