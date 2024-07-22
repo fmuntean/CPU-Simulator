@@ -6,7 +6,8 @@ def cmd_run(dbg):
     while step:
         if (dbg.breakpoint == dbg.cpu.PC):
             return
-        dbg.log(dbg.list_cmd(dbg.cpu.PC))    
+        if dbg.logging:
+            dbg.log(dbg.list_cmd(dbg.cpu.PC))    
         try:
             step = dbg.cpu.step()
         except ROMError as err:

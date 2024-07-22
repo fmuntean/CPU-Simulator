@@ -176,26 +176,44 @@ class opcode:
             match self.type:
                 case "IMM":
                     if self.reg in ['IX','SP','PC']:
-                        ret+=f",{cpu.fetchMemory(address+1):02X}{cpu.fetchMemory(address+2):02X}"  # number16
-                    else:    
+                        ret+=f" {cpu.fetchMemory(address+1):02X}{cpu.fetchMemory(address+2):02X}"  # number16
+                    elif self.reg !='':    
+                        ret+=f" {self.reg},#${cpu.fetchMemory(address+1):02X}"
+                    else:
                         ret+=f",{cpu.fetchMemory(address+1):02X}"  # number8
                 case "DIR":
-                    ret+=f",[{cpu.fetchMemory(address+1):02X}]" # [addr8]
-                case "IND":
-                    ret+=f",[IX+{cpu.fetchMemory(address+1):02X}] ({(cpu.fetchMemory(address+1)+cpu.IX):04X})"  # [addr8+IX]
-                case "EXT":
-                    if self.reg:
-                        ret+=f",[{(cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2)):04X}]" #[addr16]
+                    if self.reg in ['IX','SP','PC']:
+                        addr = cpu.fetchMemory(address+1)
+                        ret+=f" [{addr:02X}] ({(cpu.fetchMemory(addr)*256+cpu.fetchMemory(addr+1)):04X})" #[addr16]
                     else:
-                        ret+=f" {(cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2)):04X}" #addr16
+                        addr=cpu.fetchMemory(address+1)
+                        ret+=f" {self.reg},[{addr:02X}] ({cpu.fetchMemory(addr):02X})" # [addr8]
+                case "IND":
+                    addr = cpu.fetchMemory(address+1)
+                    ret+=f" {self.reg},[IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX)):02X})"  # [addr8+IX]
+                case "EXT":
+                    if self.reg in ['IX','SP','PC']:
+                        addr = cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2)
+                        ret+=f" [{addr:04X}] ({(cpu.fetchMemory(addr)*256+cpu.fetchMemory(addr+1)):04X})" #[addr16]
+                    elif self.reg:
+                        addr = (cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2))
+                        ret+=f" {self.reg},[{addr:04X}] ({cpu.fetchMemory(addr):02X})" #[addr16]
+                    else:
+                        addr = (cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2))
+                        ret+=f" [{addr:04X}] ({cpu.fetchMemory(addr):02X})" #addr16
                 case "REL":
                     ret+=f" {cpu.fetchMemory(address+1):02X} ({self.getRelativeAddress(cpu.PC, cpu.fetchMemory(address+1)):04X})"
                 case "IDX":
-                    if self.reg:
-                        ret+=f",[IX+{cpu.fetchMemory(address+1):02X}] [{cpu.fetchMemory(address+1)+cpu.IX:04X}]"
+                    if self.reg in ['IX','SP','PC']:
+                        addr = cpu.fetchMemory(address+1)
+                        ret+=f" [IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX)*256+cpu.fetchMemory(addr+cpu.IX+1)):04X})" #[addr16]
+                    elif self.reg:
+                        addr = cpu.fetchMemory(address+1)
+                        ret+=f" {self.reg},[IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX)):02X})"
                     else:
-                        ret+=f" IX+{cpu.fetchMemory(address+1):02X} ({cpu.fetchMemory(address+1)+cpu.IX:04X})"
-        else:
+                        addr = cpu.fetchMemory(address+1)
+                        ret+=f" [IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX)):02X})"
+        else: #it is a one byte instruction
             if self.reg:
                 ret+=f" {self.reg}"
         return ret
@@ -1013,11 +1031,12 @@ class opcode_JMP(opcode):
     def decode(self,cpu,address):
         ret = self.text
         match self.type:
-            case "IND":
-                ret+=f" {cpu.fetchMemory(address+1):02X}+IX ({(cpu.fetchMemory(address+1)+cpu.IX):04X})"  # addr8+IX
+            case "IDX":
+                return opcode.decode(self,cpu,address)
             case "EXT":
                 ret+=f" {(cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2)):04X}" #addr16
         return ret
+
 
 #--- JSR : Jump to Subroutine
 class opcode_JSR(opcode):
@@ -1038,6 +1057,15 @@ class opcode_JSR(opcode):
         cpu.PC = addr
         return True 
 
+    def decode(self,cpu,address):
+        ret = self.text
+        match self.type:
+            case "IDX":
+                return opcode.decode(self,cpu,address)
+            case "EXT":
+                ret+=f" {(cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2)):04X}" #addr16
+        return ret
+    
 
 #--- LDA : Load Accumulator from Memory
 class opcode_LDA(opcode):
@@ -1665,12 +1693,12 @@ opcodes = [
 
     opcode_ASL(0x48,1,"ASL","ACC","A"),
     opcode_ASL(0x58,1,"ASL","ACC","B"),
-    opcode_ASL(0x68,2,"ASL","IDX","IX"),
+    opcode_ASL(0x68,2,"ASL","IDX",""),
     opcode_ASL(0x78,3,"ASL","EXT",""),
 
     opcode_ASR(0x47,1,"ASR","ACC","A"),
     opcode_ASR(0x57,1,"ASR","ACC","B"),
-    opcode_ASR(0x67,2,"ASR","IDX","IX"),
+    opcode_ASR(0x67,2,"ASR","IDX",""),
     opcode_ASR(0x77,3,"ASR","EXT",""),
     
     opcode_BCC(0x24,2,"BCC", "REL",""),
@@ -1707,7 +1735,7 @@ opcodes = [
 
     opcode_CLR(0x4F,1,"CLR","ACC","A"),
     opcode_CLR(0x5F,1,"CLR","ACC","B"),
-    opcode_CLR(0x6F,2,"CLR","IDX","IX"),
+    opcode_CLR(0x6F,2,"CLR","IDX",""),
     opcode_CLR(0x7F,3,"CLR","EXT",""),
 
     opcode_CLV(0x0A,1,"CLV","INH", ""),
@@ -1722,7 +1750,7 @@ opcodes = [
 
     opcode_COM(0x43,1,"COM","ACC","A"),
     opcode_COM(0x53,1,"COM","ACC","B"),
-    opcode_COM(0x63,2,"COM","IDX","IX"),
+    opcode_COM(0x63,2,"COM","IDX",""),
     opcode_COM(0x73,3,"COM","EXT",""),
 
     opcode_CPX(0x9C,2,"CPX","DIR","IX"),
@@ -1758,7 +1786,7 @@ opcodes = [
     opcode_INX(0x08,1,"INX", "INH", ""),
 
     opcode_JMP(0x6E,2,"JMP", "IDX", "IX"),
-    opcode_JMP(0x7E,3,"JMP", "EXT", ""),
+    opcode_JMP(0x7E,3,"JMP", "EXT", "PC"),
 
     opcode_JSR(0xAD,2,"JSR", "IDX", "IX"),
     opcode_JSR(0xBD,3,"JSR", "EXT", ""),
@@ -1881,3 +1909,14 @@ opcodes = [
 
 ]
 
+
+
+if __name__ == '__main__':
+
+    def fetchMem(addr):
+        return 0
+    
+    cpu = MC6800(fetchMem,fetchMem)
+
+    for op in opcodes:
+        print(f"{op.code:02X} {op.length} {op.text:3s} {op.type:3s} {op.reg:2s} | {op.decode(cpu,0)}")
