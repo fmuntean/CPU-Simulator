@@ -687,7 +687,7 @@ class opcode_CLC(opcode):
         super().__init__(code, length, text, type, reg)
     
     def execute(self,cpu):
-        cpu.setFlagC(256)
+        cpu.setFlagC(0)
         cpu.PC+=1
         return True 
 
@@ -820,6 +820,22 @@ class opcode_CPX(opcode):
 
 #---- DAA Decimal Adjust Accumulator A
 # Adds hexadecimal numbers 00, 06, 60, or 66 to ACCA, and may also set the carry bit.
+"""
+State of |          |           |          |Number |State of
+C-bit    | Upper    |Initial    | Lower    | Added | C-bit
+before   |Half-byte |Half-carry | to ACCA  | after |
+DAA      |(bits 4-7)| H-bit     |(bits 0-3)| byDAA | DAA
+----------------------------------------------------------
+0        | 0-9      | 0         |    0-9   | 00    |  0
+0        | 0-8      | 0         |    A-F   | 06    |  0
+0        | 0-9      | 1         |    0-3   | 06    |  0
+0        | A-F      | 0         |    0-9   | 60    |  1
+0        | 9-F      | 0         |    A-F   | 66    |  1
+0        | A-F      | 1         |    0-3   | 66    |  1
+1        | 0-2      | 0         |    0-9   | 60    |  1
+1        | 0-2      | 0         |    A-F   | 66    |  1
+1        | 0-3      | 1         |    0-3   | 66    |  1
+"""
 class opcode_DAA(opcode):
     def __init__(self, code, length, text, type, reg):
         super().__init__(code, length, text, type, reg)
@@ -830,20 +846,38 @@ class opcode_DAA(opcode):
         upper = cpu.A >> 4
         lower = cpu.A & 0x0F
 
-        if ( ( c==0 & upper<9 & h ==0 & lower>9 ) |
-             (c==0 & upper<0x0A & h==1 & lower< 4 )):
-            r = cpu.A+0x06
-            cpu.setFlagC(0)
-        elif (( c==0 & upper>9 & h==0 & lower<0x0A ) |
-              ( c==1 & upper<3 & h==0 & lower<0x0A )):
-            r = cpu.A+0x60
-            cpu.setFlagC(256)
-        elif ( (c==0 & upper<0x0A & h==0 & lower<0x0A) ):
-            r = cpu.A
-            cpu.setFlagC(0)
-        else:
-            r = cpu.A + 0x66
-            cpu.setFlagC(256)
+        r=cpu.A
+        if (c==0 and h==0):
+            if (upper<10 and lower<10):
+                cpu.setFlagC(0)
+            if (upper<9 and lower>9):
+                r = cpu.A+0x06
+                cpu.setFlagC(0)
+            if (upper>9 and lower<10):
+                r = cpu.A+0x60
+                cpu.setFlagC(256)
+            if (upper>8 and lower>9):
+                r=cpu.A+0x66
+                cpu.setFlagC(256)
+        elif c==0 and h==1:
+            if (upper<10 and lower<4):
+                r=cpu.A+0x06
+                cpu.setFlagC(0)
+            if (upper>9 and lower<4):
+                cpu.A+0x66
+                cpu.setFlagC(256)
+        elif c==1 and h==0:
+            if (upper<3 and lower<10):
+                r=cpu.A+0x60
+                cpu.setFlagC(256)
+            if (upper<3 and lower>9):
+                r = cpu.A+0x66
+                cpu.setFlagC(256)
+        else: # c==1 and h==1:  
+            if (upper<4 and lower<4):
+                r = cpu.A+0x66
+                cpu.setFlagC(256)
+
         cpu.setFlagN(r)
         cpu.setFlagZ(r)
         cpu.A = r
@@ -1032,7 +1066,8 @@ class opcode_JMP(opcode):
         ret = self.text
         match self.type:
             case "IDX":
-                return opcode.decode(self,cpu,address)
+                addr = cpu.fetchMemory(address+1)
+                ret+=f" IX+{addr:02X} ({(addr+cpu.IX):04X})" #[addr16]  
             case "EXT":
                 ret+=f" {(cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2)):04X}" #addr16
         return ret
@@ -1061,7 +1096,8 @@ class opcode_JSR(opcode):
         ret = self.text
         match self.type:
             case "IDX":
-                return opcode.decode(self,cpu,address)
+                addr = cpu.fetchMemory(address+1)
+                ret+=f" IX+{addr:02X} ({(addr+cpu.IX):04X})" #[addr16]    
             case "EXT":
                 ret+=f" {(cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2)):04X}" #addr16
         return ret
