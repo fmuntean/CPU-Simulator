@@ -98,12 +98,14 @@ class Debugger:
             return ret
         
         if cmd.startswith('break'):
+            cmd = cmd.replace(' ',',')
             s = cmd.split(',')
-            #a = int(s[1])
-            if s[1].startswith('0x'):
-                v = int(s[1],base=16)
+            
+            #by default we use base 16 and we prefix with d for decimal values
+            if s[1].startswith('d'): 
+                v = int(s[1],base=10)
             else:
-                v= int(s[1],base=10)
+                v= int(s[1],base=16)
 
             self.breakpoint = v
             return "ok"
