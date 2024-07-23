@@ -1,4 +1,5 @@
 from threading import Thread
+from utils import loadHex,loadS19
 
 
 def cmd_run(dbg):
@@ -6,8 +7,8 @@ def cmd_run(dbg):
     while step:
         if (dbg.breakpoint == dbg.cpu.PC):
             return
-        if dbg.logging:
-            dbg.log(dbg.list_cmd(dbg.cpu.PC))    
+        
+        dbg.log()    
         try:
             step = dbg.cpu.step()
         except ROMError as err:
@@ -37,7 +38,7 @@ class Debugger:
         Debugger.setMemory = self.cpu.setMemory
         self.cpu.setMemory = Debugger.setMemoryProtected
 
-    def log(self,line):
+    def log(self):
         if self.logging:
             file1 = open("debugger.log", "a")  # append mode
             file1.write(self.list_regs(self.cpu))
@@ -92,7 +93,7 @@ class Debugger:
             return "ok"
 
         if cmd == "step":
-            self.log(self.list_cmd(self.cpu.PC))
+            self.log()
             self.cpu.step()
             ret = self.list_cmd(self.cpu.PC)
             return ret

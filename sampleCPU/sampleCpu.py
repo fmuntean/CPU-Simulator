@@ -28,6 +28,8 @@ class opcode:
     length= 0
     code = 0
     text = ""
+    type = ""
+    reg = ""
     def __init__(self,code,length, text):
         self.code = code
         self.length = length 
@@ -216,4 +218,14 @@ opcodes = [
 ]
 
 
+
+if __name__ == '__main__':
+
+    def fetchMem(addr):
+        return 0
+    
+    cpu = myCPU(fetchMem,fetchMem)
+
+    for op in opcodes:
+        print(f"{op.code:02X} {op.length} {op.text:6s} {op.type:3s} {op.reg:2s} | {op.decode(cpu,0)}")
     

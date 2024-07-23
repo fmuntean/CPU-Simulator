@@ -5,7 +5,7 @@
 
 # Registers:
 #    A,B	Accumulator     8bit
-#    IX	    Index register  8bit
+#    IX	    Index register  16bit
 #    PC	    Program Counter 16bit
 #    SP	    Stack Pointer   16bit
 #    SR	    Status register 8bit
@@ -846,9 +846,10 @@ class opcode_DAA(opcode):
         upper = cpu.A >> 4
         lower = cpu.A & 0x0F
 
-        r=cpu.A
+        #r=cpu.A
         if (c==0 and h==0):
             if (upper<10 and lower<10):
+                r=cpu.A
                 cpu.setFlagC(0)
             if (upper<9 and lower>9):
                 r = cpu.A+0x06
@@ -880,7 +881,7 @@ class opcode_DAA(opcode):
 
         cpu.setFlagN(r)
         cpu.setFlagZ(r)
-        cpu.A = r
+        cpu.A = r & 0XFF
         cpu.PC+=1
         return True   
 
