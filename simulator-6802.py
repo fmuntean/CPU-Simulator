@@ -39,6 +39,8 @@ if __name__ == '__main__':
    #loadHex(mem,"MC6800/mc6802.hex")
    loadHex(mem,"bios.hex")
    loadHex(mem,"TSCMicroBasicPlus/MicroBasROM.hex")
+   #loadHex(mem,"TSCMicroBasicPlus/MicroBas.hex")
+   
    cpu.reset()
-   debugger.setROM(0xE000,0xFFEF)
+   debugger.setROM(0x8000,0x8FFF)
    simulator.start(debugger)
