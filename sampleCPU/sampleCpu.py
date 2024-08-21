@@ -1,3 +1,13 @@
+
+"""
+ A simple sample CPU for learning purposes
+
+ It has two registers: A and B
+ two flags: CARRY, ZERO
+ an 8bit program counter: PC
+"""
+
+
 class myCPU:
     
     def reset(self):
@@ -12,7 +22,7 @@ class myCPU:
         self.reset()
         
     def step(self):
-        op = list(filter(lambda x: x.code == self.fetchMemory(self.PC % 255), opcodes))[0]
+        op = list(filter(lambda x: x.code == self.fetchMemory(self.PC % 0xFF), opcodes))[0]
         return op.execute(self)
 
     def getOpcode(self,index):
@@ -30,10 +40,12 @@ class opcode:
     text = ""
     type = ""
     reg = ""
-    def __init__(self,code,length, text):
+
+    def __init__(self,code,length, text,reg=''):
         self.code = code
         self.length = length 
         self.text = text
+        self.reg = reg
 
     def getHex(self):
         ret = f"{self.code:02X}"
@@ -48,53 +60,43 @@ class opcode:
             ret+=f",{cpu.fetchMemory(address+1):02X}"
         return ret
     
+    def execute(self):
+        cpu.PC+=self.length
+        return True
+    
 class opcode_NOP(opcode):    
-    def __init__(self):
-        self.code = 0
-        self.length = 1
-        self.text = "NOP"
+    def __init__(self,code,length,text):
+         super().__init__(code,length,text)
+        
     def execute(self,cpu):
         cpu.PC+=1
         return True 
 
 class opcode_BREAK(opcode):
-    def __init__(self):
-        self.code=1
-        self.length=1
-        self.text = "BREAK"
+    def __init__(self,code,length,text):
+         super().__init__(code,length,text)
+
     def execute(self,cpu):
         cpu.PC+=1
         return False #triggering the stop in debugger
     
 class opcode_HALT(opcode):
-    def __init__(self):
-        self.code = 255
-        self.length = 1
-        self.text = "HALT"
+    def __init__(self,code,length,text):
+         super().__init__(code,length,text)
     
     def execute(self,cpu):
         return False #trigerring the stop in debugger
    
-class opcode_LC_A(opcode):
-    def __init__(self):
-        super().__init__(2,2,"LC A")
+class opcode_LC(opcode):
+    def __init__(self,code,length,text,reg):
+         super().__init__(code,length,text,reg)
 
     def execute(self,cpu):
-        cpu.registers[0] = cpu.fetchMemory(cpu.PC+1)
-        cpu.ZERO = cpu.registers[0] == 0
+        regIndex = 0 if self.reg=='A' else 1
+        cpu.registers[regIndex] = cpu.fetchMemory(cpu.PC+1)
+        cpu.ZERO = cpu.registers[regIndex] == 0
         cpu.PC+=self.length
         return True
-        
-class opcode_LC_B(opcode):
-    def __init__(self):
-        super().__init__(3,2,"LC B")
-
-    def execute(self,cpu):
-        cpu.registers[1] = cpu.fetchMemory(cpu.PC+1)
-        cpu.ZERO = cpu.registers[1] == 0
-        cpu.PC+=self.length
-        return True
-
 
 class opcode_LD_A(opcode):
     def __init__(self):
@@ -193,11 +195,11 @@ class opcode_JMPC(opcode):
 
 
 opcodes = [
-    opcode_NOP(),
-    opcode_BREAK(),
-    opcode_HALT(),
-    opcode_LC_A(),
-    opcode_LC_B(),
+    opcode_NOP(0x00,1,"NOP"),
+    opcode_BREAK(0x01,1,"BREAK"),
+    opcode_HALT(0xFF,1,"HALT"),
+    opcode_LC(0x02,2,"LC A","A"),
+    opcode_LC(0x03,2,"LC B","B"),
     opcode_LD_A(),
     opcode_LD_B(),
     opcode_STOAB(),
