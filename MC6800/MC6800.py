@@ -860,14 +860,14 @@ class opcode_DAA(opcode):
             if (upper>8 and lower>9):
                 r=cpu.A+0x66
                 cpu.setFlagC(256)
-        elif c==0 and h==1:
+        elif c==0 and h!=0:
             if (upper<10 and lower<4):
                 r=cpu.A+0x06
                 cpu.setFlagC(0)
             if (upper>9 and lower<4):
-                cpu.A+0x66
+                r=cpu.A+0x66
                 cpu.setFlagC(256)
-        elif c==1 and h==0:
+        elif c!=0 and h==0:
             if (upper<3 and lower<10):
                 r=cpu.A+0x60
                 cpu.setFlagC(256)
@@ -1650,6 +1650,11 @@ class opcode_TST(opcode):
         cpu.PC+=self.length
         return True
 
+    def decode(self,cpu,address):
+        if self.type=="IDX":
+            addr = cpu.fetchMemory(address+1)
+            return f"{self.text} [IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX)):02X})" 
+        return super(opcode_TST,self).decode(cpu,address)        
 
 #--- TSX : Move Stack Pointer contents to Index register and increment.
 class opcode_TSX(opcode):
@@ -1929,10 +1934,10 @@ opcodes = [
 
     opcode_SWI(0x3F,1,"SWI",  "INH",""),
 
-    opcode_TAB(0x16,1,"TAB", "INH","B"),
-    opcode_TAP(0x06,1,"TAP", "INH","SP"),
-    opcode_TBA(0x17,1,"TBA", "INH","A"),
-    opcode_TPA(0x07,1,"TPA", "INH","SP"),
+    opcode_TAB(0x16,1,"TAB", "INH","A->B"),
+    opcode_TAP(0x06,1,"TAP", "INH","A->SR"),
+    opcode_TBA(0x17,1,"TBA", "INH","B->A"),
+    opcode_TPA(0x07,1,"TPA", "INH","SR->A"),
 
     opcode_TST(0x4D,1,"TST","ACC","A"),
     opcode_TST(0x5D,1,"TST","ACC","B"),
