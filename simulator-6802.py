@@ -3,10 +3,12 @@ from debugger import Debugger
 from simulator import Simulator
 from utils import loadHex
 
-#from MC6802.acia import UART
-from MC6800.st16c1550 import UART
+#from devices.acia import UART
+#from devices.st16c1550 import UART
+from devices.z8530 import UART 
 
-ser = UART(0xc7f8) # Serial 
+
+ser = UART(0xc7f4) # Serial 
 
 mem = bytearray(0xFFFF+1) # 64KB
 
