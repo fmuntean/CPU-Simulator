@@ -1,6 +1,9 @@
 # AMD Z8530  (Asynchronous Communication) simulator
 
 
+from numpy import int8
+
+
 class UART:
     def __init__(self, base):
         self.baseAddr = base
@@ -62,9 +65,9 @@ class UART:
         pass
         
     #used to transmit data to outside world
-    def transmit(self):
+    def transmit(self) -> int8|None:
         if self.RRS[0] & 0b00000100:
-           return -1
+           return None
         
         ret = self.tx
         self.tx=0

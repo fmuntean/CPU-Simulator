@@ -18,6 +18,8 @@
 #   V = Overflow (set when operation overflow)
 #   C = Carry (set when was a cary from bit7)
 
+from mypy_extensions import i16
+
 
 class MC6800:
     # Reset Pointer                  = 0xFFFF-1
@@ -25,20 +27,28 @@ class MC6800:
     # Software Interrupt Pointer     = 0xFFFF-5
     # Internal Interrupt Pointer     = 0xFFFF-7
 
-    def __init__(self,fetchMemory,setMemory):
+
+
+    def __init__(self,fetchMemory=None,setMemory=None):
+        self.fetchMemory = fetchMemory
+        self.setMemory = setMemory
+        if fetchMemory is not None:
+            self.reset()
+
+    def setMemoryHandlers(self,fetchMemory,setMemory):
         self.fetchMemory = fetchMemory
         self.setMemory = setMemory
         self.reset()
 
-    def reset(self):
-        self.PC = self.fetchMemory(0xFFFE)*256+self.fetchMemory(0xFFFF)
-        self.A = 0
-        self.B = 0
-        self.IX = 0
-        self.SP = 0
-        self.SR = 0xC0 # highest two bits are always 11 H I N Z V C
+    def reset(self)->None:
+        self.PC : i16 = 0xFFFF if self.fetchMemory is None else self.fetchMemory(0xFFFE)*256+self.fetchMemory(0xFFFF)
+        self.A  : i16 = 0
+        self.B  : i16 = 0
+        self.IX : i16 = 0
+        self.SP : i16 = 0
+        self.SR : i16 = 0xC0 # highest two bits are always 11 H I N Z V C
 
-    def getRegister(self, reg):
+    def getRegister(self, reg:str)->i16:
         match reg:
             case "A":
                 return self.A
@@ -53,7 +63,7 @@ class MC6800:
             case "PC":
                 return self.PC
         
-    def setRegister(self, reg, val):
+    def setRegister(self, reg:str, val:i16)->None:
         match reg:
             case "A":
                 self.A = val & 0xFF
@@ -68,7 +78,7 @@ class MC6800:
             case "PC":
                 self.PC = val & 0xFFFF
 
-    def getFlagH(self):
+    def getFlagH(self)->i16:
         return self.SR & 0x20
 
     def setFlagC(self,regOut):
@@ -592,7 +602,8 @@ class opcode_BPL(opcode):
     def execute(self,cpu):
         if ( cpu.getFlagN() == 0 ):
             rel = cpu.fetchMemory(cpu.PC+1)
-            rel = -(0xFF - rel)-1 if rel & 0x80 else rel
+            if rel & 0x80:
+                rel = -(0xFF - rel)-1
             cpu.PC+=rel+2
         else:
             cpu.PC+=2

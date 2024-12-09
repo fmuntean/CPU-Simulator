@@ -1,7 +1,7 @@
 
 import curses
 
-from debugger import Debugger
+from debuggerCli import Debugger
 
 class ScreenMemory:
     def __init__(self,screen):
