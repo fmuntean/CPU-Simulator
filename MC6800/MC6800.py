@@ -186,43 +186,43 @@ class opcode:
             match self.type:
                 case "IMM":
                     if self.reg in ['IX','SP','PC']:
-                        ret+=f" {cpu.fetchMemory(address+1):02X}{cpu.fetchMemory(address+2):02X}"  # number16
+                        ret+=f" {cpu.fetchMemory(address+1,True):02X}{cpu.fetchMemory(address+2,True):02X}"  # number16
                     elif self.reg !='':    
-                        ret+=f" {self.reg},#${cpu.fetchMemory(address+1):02X}"
+                        ret+=f" {self.reg},#${cpu.fetchMemory(address+1,True):02X}"
                     else:
-                        ret+=f",{cpu.fetchMemory(address+1):02X}"  # number8
+                        ret+=f",{cpu.fetchMemory(address+1,True):02X}"  # number8
                 case "DIR":
                     if self.reg in ['IX','SP','PC']:
-                        addr = cpu.fetchMemory(address+1)
-                        ret+=f" [{addr:02X}] ({(cpu.fetchMemory(addr)*256+cpu.fetchMemory(addr+1)):04X})" #[addr16]
+                        addr = cpu.fetchMemory(address+1,True)
+                        ret+=f" [{addr:02X}] ({(cpu.fetchMemory(addr,True)*256+cpu.fetchMemory(addr+1,True)):04X})" #[addr16]
                     else:
-                        addr=cpu.fetchMemory(address+1)
-                        ret+=f" {self.reg},[{addr:02X}] ({cpu.fetchMemory(addr):02X})" # [addr8]
+                        addr=cpu.fetchMemory(address+1,True)
+                        ret+=f" {self.reg},[{addr:02X}] ({cpu.fetchMemory(addr,True):02X})" # [addr8]
                 case "IND":
-                    addr = cpu.fetchMemory(address+1)
-                    ret+=f" {self.reg},[IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX)):02X})"  # [addr8+IX]
+                    addr = cpu.fetchMemory(address+1,True)
+                    ret+=f" {self.reg},[IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX,True)):02X})"  # [addr8+IX]
                 case "EXT":
                     if self.reg in ['IX','SP','PC']:
-                        addr = cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2)
-                        ret+=f" [{addr:04X}] ({(cpu.fetchMemory(addr)*256+cpu.fetchMemory(addr+1)):04X})" #[addr16]
+                        addr = cpu.fetchMemory(address+1,True)*256+cpu.fetchMemory(address+2,True)
+                        ret+=f" [{addr:04X}] ({(cpu.fetchMemory(addr,True)*256+cpu.fetchMemory(addr+1,True)):04X})" #[addr16]
                     elif self.reg:
-                        addr = (cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2))
-                        ret+=f" {self.reg},[{addr:04X}] ({cpu.fetchMemory(addr):02X})" #[addr16]
+                        addr = (cpu.fetchMemory(address+1,True)*256+cpu.fetchMemory(address+2,True))
+                        ret+=f" {self.reg},[{addr:04X}] ({cpu.fetchMemory(addr,True):02X})" #[addr16]
                     else:
-                        addr = (cpu.fetchMemory(address+1)*256+cpu.fetchMemory(address+2))
-                        ret+=f" [{addr:04X}] ({cpu.fetchMemory(addr):02X})" #addr16
+                        addr = (cpu.fetchMemory(address+1,True)*256+cpu.fetchMemory(address+2,True))
+                        ret+=f" [{addr:04X}] ({cpu.fetchMemory(addr,True):02X})" #addr16
                 case "REL":
-                    ret+=f" {cpu.fetchMemory(address+1):02X} ({self.getRelativeAddress(cpu.PC, cpu.fetchMemory(address+1)):04X})"
+                    ret+=f" {cpu.fetchMemory(address+1,True):02X} ({self.getRelativeAddress(cpu.PC, cpu.fetchMemory(address+1,True)):04X})"
                 case "IDX":
                     if self.reg in ['IX','SP','PC']:
-                        addr = cpu.fetchMemory(address+1)
-                        ret+=f" [IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX)*256+cpu.fetchMemory(addr+cpu.IX+1)):04X})" #[addr16]
+                        addr = cpu.fetchMemory(address+1,True)
+                        ret+=f" [IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX,True)*256+cpu.fetchMemory(addr+cpu.IX+1,True)):04X})" #[addr16]
                     elif self.reg:
-                        addr = cpu.fetchMemory(address+1)
-                        ret+=f" {self.reg},[IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX)):02X})"
+                        addr = cpu.fetchMemory(address+1,True)
+                        ret+=f" {self.reg},[IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX,True)):02X})"
                     else:
-                        addr = cpu.fetchMemory(address+1)
-                        ret+=f" [IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX)):02X})"
+                        addr = cpu.fetchMemory(address+1,True)
+                        ret+=f" [IX+{addr:02X}] [{(addr+cpu.IX):04X}] ({(cpu.fetchMemory(addr+cpu.IX,True)):02X})"
         else: #it is a one byte instruction
             if self.reg:
                 ret+=f" {self.reg}"
