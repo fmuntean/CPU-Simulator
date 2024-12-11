@@ -33,11 +33,13 @@ if __name__ == '__main__':
    print("\r\n")
    #loadHex(mem,"MC6800/mc6802.hex")
    loadHex(mem,"bios.hex")
-   loadHex(mem,"TSCMicroBasicPlus/MicroBasROM.hex")
+   #loadHex(mem,"TSCMicroBasicPlus/MicroBasROM.hex")
    #loadHex(mem,"TSCMicroBasicPlus/MicroBas.hex")
+   #loadHex(mem,"TSCMicroBasicPlus/MicroBasRAM.hex")
+   loadHex(mem,"MicroBasic/MicroBasic.hex")
    
    cpu.reset()
-   simulator.setROM(0x8000,0x8FFF)
+   simulator.setROM(0xF000,0xFFFF)
 
    telnet.start()
    simulator.isRunning = True

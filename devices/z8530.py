@@ -24,20 +24,21 @@ class UART:
         return False
 
     #read internal register 
-    def read(self,addr):
+    def read(self,addr,peek=False):
       channel = (addr & 0x02)>>1
       cmd_data = addr & 0x01
 
       ret = 0
       if channel==1 and cmd_data==0: # channel A cmd
         index = self.WRS[0]
-        ret = self.RRS[index]
+        ret = self.RRS[index & 0x0F]
         if index>0:
            self.WRS[0] = 0
       elif channel==1 and cmd_data==1: #channel A Data
           ret = self.rx
-          self.rx=0
-          self.RRS[0] = self.RRS[0] & 0b11111110
+          if peek==False:
+            self.rx=0
+            self.RRS[0] = self.RRS[0] & 0b11111110
 
       return ret
       pass

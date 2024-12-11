@@ -1,4 +1,5 @@
 from threading import Thread
+from time import sleep
 
 
 class ROMError(Exception): ...
@@ -14,12 +15,14 @@ class Simulator(Thread):
     self.devices = devices
     self.protect = [] # an array of tuples of memory ranges to protect from writing
     self.isRunning = False
+    self.delay=0
+    self.breakpoint = -1
     pass
 
-  def fetchMemory(self,address):
+  def fetchMemory(self,address,peek=False):
     for d in self.devices:
       if (d.match(address)):
-          return d.read(address)
+          return d.read(address,peek)
       else:
           return self.mem[address & 0xFFFF]
 
@@ -40,11 +43,13 @@ class Simulator(Thread):
   def run(self):
     print("Simulator running")
     while True:
-      #if (dbg.breakpoint == dbg.cpu.PC):
-      #      return
       if self.isRunning:    
         try:
           step = self.cpu.step()
+          if (self.breakpoint == self.cpu.PC):
+            self.isRunning = False
+          if self.delay>0:
+             sleep(self.delay)
         except ROMError as err:
             self.isRunning = False
     pass
