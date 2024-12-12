@@ -127,16 +127,13 @@ class Debugger(Thread):
         if cmd.startswith("jump"):
             s = cmd.split(',')
             if len(s)>1:
-                if s[1].startswith('0x'):
-                    a = int(s[1],base=16)
-                else:
-                    a= int(s[1],base=10)
+                a = int(s[1],base=16)
                 self.cpu.PC=a
 
         if cmd.startswith("set"):
             s = cmd.split(',')
-            a = int(s[1])
-            v = int(s[2])
+            a = int(s[1],base=16)
+            v = int(s[2],base=16)
             self.mem[a] = v
             return f"{a} : {v}"
              

@@ -34,7 +34,7 @@ class Simulator(Thread):
         for start,end in self.protect:
             if address>=start and address<=end:
                 raise ROMError(f"ROM protected Area: 0x{address:4X}")
-            self.mem[address & 0xFFFF] = value
+        self.mem[address & 0xFFFF] = value
         
   def setROM(self,fromAddr,toAddr):
     #we add a protect range
