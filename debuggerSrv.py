@@ -7,6 +7,7 @@ class Debugger(Thread):
     
     def __init__(self,simulator):
         Thread.__init__(self,name="DebuggerThread")
+        self.simulator = simulator
         self.cpu = simulator.cpu
         self.mem = simulator.mem
         self.displayStart = 0
@@ -49,7 +50,8 @@ class Debugger(Thread):
 
 
     def execute(self,cmd):
-        cmd = cmd.lower()
+        cmd = cmd.replace(' ',',').lower()
+
         if cmd == 'list_regs':
             return self.list_regs()
         
@@ -104,12 +106,13 @@ class Debugger(Thread):
             return "ok"
 
         if cmd == "step":
-            self.cpu.step()
-            ret = self.list_cmd(self.cpu.PC)
-            return ret
+            if self.simulator.isRunning==False:
+                self.cpu.step()
+                ret = self.list_cmd(self.cpu.PC)
+                return ret
+            return "running"
         
         if cmd.startswith('break'):
-            cmd = cmd.replace(' ',',')
             s = cmd.split(',')
             
             #by default we use base 16 and we prefix with d for decimal values
@@ -118,22 +121,19 @@ class Debugger(Thread):
             else:
                 v= int(s[1],base=16)
 
-            self.breakpoint = v
+            self.simulator.breakpoint = v
             return "ok"
             
         if cmd.startswith("jump"):
             s = cmd.split(',')
             if len(s)>1:
-                if s[1].startswith('0x'):
-                    a = int(s[1],base=16)
-                else:
-                    a= int(s[1],base=10)
+                a = int(s[1],base=16)
                 self.cpu.PC=a
 
         if cmd.startswith("set"):
             s = cmd.split(',')
-            a = int(s[1])
-            v = int(s[2])
+            a = int(s[1],base=16)
+            v = int(s[2],base=16)
             self.mem[a] = v
             return f"{a} : {v}"
              
@@ -184,13 +184,20 @@ class Debugger(Thread):
                 return "ok"
             return "CPU not on WAI opcode"
 
-        if cmd.startswith("log"): 
+        if cmd.startswith("delay"): 
             s = cmd.split(',')
-            if s[1]=='1' or s[1]=='on':
-                self.logging = True
-            else:
-                self.logging = False
+            v = float(s[1])
+            self.simulator.delay = v
             return "ok"
+        
+        if cmd == "stop":
+            self.simulator.isRunning = False
+            return "ok"
+        
+        if cmd == "run":
+            self.simulator.isRunning = True
+            return "ok"
+        
         return "Invalid Command!" 
             
 
@@ -208,9 +215,13 @@ class Debugger(Thread):
                 while self.isRunning:
                     try:  
                         msg = c.recv(1024).decode()
-                        print(f"DBG: got message: {msg}")
-                        ret = self.execute(msg)
-                        print(f"DBG: response: {ret}")
+                        #print(f"DBG: got message: {msg}")
+                        try:
+                            ret = self.execute(msg)
+                        #print(f"DBG: response: {ret}")
+                        except:
+                            print(F"ERR: executing: {msg}")
+                            ret ="err"
                         c.sendall(ret.encode())
                     except socket.timeout:
                         print("socket timeout")

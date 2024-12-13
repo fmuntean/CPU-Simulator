@@ -5,9 +5,7 @@ from utils import loadHex,loadS19
 class Debugger():
     
     def __init__(self):
-        #Thread.__init__(self,name="DebuggerThread")
         self.displayStart = 0
-        self.breakpoint = -1 #means disabled
         self.logging = False
         self.isRunning = False
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -64,24 +62,6 @@ class Debugger():
         self.displayStart = int(s[1],base=16)        
         return "ok"
       
-
-      if cmd.startswith("load"):
-        s = cmd.split(',')
-        f = s[1]
-        if (f.endswith("mem")):
-          file = open(f, "rb")
-          
-          bytes = file.read(256)
-          file.close()
-          for i in range(0,255):
-            self.mem[i] = bytes[i]
-        elif (f.endswith("hex")):
-          loadHex(self.mem,f)
-        else:
-          loadS19(self.mem,f)
-        
-        return "loaded"
-      
       self.socket.sendall(cmd.encode())
       ret = self.socket.recv(1024).decode()
       return ret
@@ -91,6 +71,3 @@ class Debugger():
             
     def start(self):
       self.socket.connect(self.addr)
-      #self.socket.setblocking(False)
-      #self.socket.settimeout(1)
-      #self.socket.send("Debugger Client connected\r\n".encode())  
