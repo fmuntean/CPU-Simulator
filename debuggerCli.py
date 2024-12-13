@@ -57,7 +57,7 @@ class Debugger():
       return ret.split("/r/n")
 
     def execute(self,cmd):
-      cmd = cmd.lower()
+      cmd = cmd.replace(' ',',').lower()
         
       if cmd.startswith("display"):
         s = cmd.split(',')

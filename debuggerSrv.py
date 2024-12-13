@@ -155,17 +155,22 @@ class Debugger(Thread):
         if cmd.startswith("load"):
             s = cmd.split(',')
             f = s[1]
-            if (f.endswith("mem")):
+            if (f.split('.')[-1] not in ['hex','mem','s19']):
+               f = f"{f}/{f}.hex"
+             
+            if (f.endswith(".mem")):
                 file = open(f, "rb")
                 
                 bytes = file.read(256)
                 file.close()
                 for i in range(0,255):
                     self.mem[i] = bytes[i]
-            elif (f.endswith("hex")):
+            elif (f.endswith(".hex")):
                 loadHex(self.mem,f)
-            else:
+            elif (f.endswith(".s19")):
                 loadS19(self.mem,f)
+            else:
+                return "failed"
             
             return "loaded"
         
