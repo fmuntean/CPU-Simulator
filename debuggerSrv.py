@@ -146,8 +146,11 @@ class Debugger(Thread):
         if cmd.startswith("save"):
             s = cmd.split(',')
             f = s[1]
+            start = int(s[2],base=16) if len(s)>2 else 0
+            end   = int(s[3],base=16)+1 if len(s)>3 else 65536
+            
             file = open(f, "w+b")
-            binary_format = bytearray(self.mem)
+            binary_format = bytearray(self.mem[start:end])
             file.write(binary_format)
             file.close()
             return "saved"
@@ -155,16 +158,17 @@ class Debugger(Thread):
         if cmd.startswith("load"):
             s = cmd.split(',')
             f = s[1]
-            if (f.split('.')[-1] not in ['hex','mem','s19']):
+            if (f.split('.')[-1] not in ['hex','mem','s19','bas']):
                f = f"{f}/{f}.hex"
-             
-            if (f.endswith(".mem")):
+            
+            if (f.endswith('.mem') or f.endswith('.bas')):
                 file = open(f, "rb")
-                
-                bytes = file.read(256)
+                start = int(s[2],base=16) if len(s)>2 else 0
+                bytes = file.read()
                 file.close()
-                for i in range(0,255):
-                    self.mem[i] = bytes[i]
+                for b in bytes:
+                    self.mem[start] = b
+                    start+=1
             elif (f.endswith(".hex")):
                 loadHex(self.mem,f)
             elif (f.endswith(".s19")):

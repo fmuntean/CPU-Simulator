@@ -62,6 +62,16 @@ class Debugger():
         self.displayStart = int(s[1],base=16)        
         return "ok"
       
+      if cmd.startswith("save"):
+         s=cmd.split(',')
+         if s[1].endswith('.bas'):
+            cmd+=",D000,DFFF"
+            
+      if cmd.startswith("load"):
+         s=cmd.split(',')
+         if s[1].endswith('.bas'):
+            cmd+=",D000"
+      
       self.socket.sendall(cmd.encode())
       ret = self.socket.recv(1024).decode()
       return ret

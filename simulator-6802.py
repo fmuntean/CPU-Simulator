@@ -37,6 +37,7 @@ if __name__ == '__main__':
    #loadHex(mem,"TSCMicroBasicPlus/MicroBas.hex")
    #loadHex(mem,"TSCMicroBasicPlus/MicroBasRAM.hex")
    loadHex(mem,"MicroBasic/MicroBasic.hex")
+   #loadHex(mem,"TinyBasic/TB_6800.hex")
    
    cpu.reset()
    simulator.setROM(0xE000,0xFFFF) # 8KB ROM
