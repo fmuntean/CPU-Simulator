@@ -31,9 +31,10 @@ class VMTranslator:
             self.writer.WriteComment(line)
             continue
           
-          self.writer.WriteComment(f"//{line}")
+          self.writer.WriteComment(f"\n//{line}")
           
           cmd,arg1,arg2 = self.parser.Parse(line)
+          arg2 = 0 if arg2 is None else int(arg2)
           self.writer.Translate(cmd,arg1,arg2)
 
       
