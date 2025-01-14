@@ -84,6 +84,13 @@ class CodeWriter:
       ret = cmd_neg()
     elif cmd=='not':
       ret = cmd_not()
+    
+    elif cmd=='call':
+      ret = cmd_call(arg1,arg2)
+    elif cmd=='function':
+      ret = cmd_function(arg1,arg2)
+    elif cmd=='return':
+      ret = cmd_return()
     else:
       ret=None
     

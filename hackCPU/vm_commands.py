@@ -294,3 +294,50 @@ def cmd_not():
     M=M+1
   """
   return ret.splitlines()
+
+
+def cmd_label(lbl:string):
+  pass
+
+def cmd_goto(lbl:string):
+  pass
+
+def cmd_if_goto(lbl:string):
+  pass
+
+
+"""
+push returnAddress  //use a label declared below
+push LCL            //saves LCL into stack
+push ARG            //saves ARG
+push THIS           //saves THIS
+push THAT           //saves THAT
+ARG = SP-5-nArgs    //reposition ARG
+LCL = SP            //reposition LCL
+goto functionName   //jump to function label
+(returnAddress)
+"""
+def cmd_call(fName:string,nArgs:int):
+  pass
+
+
+"""
+(functionName)    //declare function label
+repeat nVars times: push 0
+"""
+def cmd_function(label:string,nVars:int):
+  pass
+
+"""
+endFrame = LCL          // put LCL in a temp variable
+retAddr= *(endFrame-5)  //gets the return address
+*ARG = pop()            //reposition the return value (pop and copy to ARG)
+SP=ARG+1                //reposition SP
+THAT = *(endFrame-1)
+THIS = *(endFrame-2)
+ARG  = *(endFrame-3)
+LCL  = *(endFrame-4)
+goto retAddr
+"""
+def cmd_return():
+  pass
