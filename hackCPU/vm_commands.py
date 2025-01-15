@@ -1,10 +1,10 @@
 import string
 
-def cmd_push(section:string,arg2:int):
+def cmd_push(section:string,arg2:int,source:string):
   
   if section=='static':
     ret = f"""
-      @{section}.{arg2}
+      @static.{source}.{arg2}
       D=M   //read from static memory to D
       @SP   //add D into Stack
       A=M
@@ -48,6 +48,8 @@ def cmd_push(section:string,arg2:int):
         ret.append("A=D+M")
       if arg2==1:
         ret.append("A=M+1")
+      if arg2==0:
+        ret.append("A=M")
       ret.append("D=M")
 
   # D has the value to store
@@ -65,7 +67,7 @@ addr ← segmentPointer + i
 SP--
 RAM[addr] ← RAM[SP]
 """
-def cmd_pop(section:string,arg2:int):
+def cmd_pop(section:string,arg2:int,source:string):
   ret=[]
   
 
@@ -74,7 +76,7 @@ def cmd_pop(section:string,arg2:int):
       @SP
       AM=M-1
       D=M
-      @{section}.{arg2}
+      @static.{source}.{arg2}
       M=D
     """
     return ret.splitlines()
@@ -100,6 +102,7 @@ def cmd_pop(section:string,arg2:int):
         AM=M-1
         D=M
         @{section}
+        A=M
         M=D
       """
       return ret.splitlines()
@@ -107,12 +110,14 @@ def cmd_pop(section:string,arg2:int):
     if arg2>1:
       ret.append(f"@{arg2}")
       ret.append("D=A")
+
     ret.append(f"@{section}")
     if arg2==1:
       ret.append("A=M+1")
     if arg2>1:  
       ret.append("A=D+M")
-    ret.append("D=M")
+    
+    ret.append("D=A")
     # save the address to save value into R13
     ret.append("@R13")
     ret.append("M=D")
@@ -297,13 +302,24 @@ def cmd_not():
 
 
 def cmd_label(lbl:string):
-  pass
+  return ([f"({lbl})"])
 
 def cmd_goto(lbl:string):
-  pass
+  ret=f"""
+    @{lbl}
+    0;JMP
+  """
+  return ret.splitlines()
 
 def cmd_if_goto(lbl:string):
-  pass
+  ret = f"""
+    @SP
+    AM=M-1
+    D=M
+    @{lbl}
+    D;JGT
+  """
+  return ret.splitlines()
 
 
 """
@@ -317,8 +333,58 @@ LCL = SP            //reposition LCL
 goto functionName   //jump to function label
 (returnAddress)
 """
-def cmd_call(fName:string,nArgs:int):
-  pass
+def cmd_call(fName:string,nArgs:int,i:int):
+  ret=f"""
+    @return_from_{fName}_{i}
+    D=A
+    @SP   //push returnAddress
+    A=M
+    M=D
+    
+    @LCL  //push LCL
+    D=M
+    @SP
+    AM=M+1
+    M=D
+    
+    @ARG  //push ARG
+    D=M
+    @SP
+    AM=M+1
+    M=D
+
+    @THIS //push THIS
+    D=M
+    @SP
+    AM=M+1
+    M=D
+
+    @THAT //push THAT
+    D=M
+    @SP
+    AM=M+1
+    M=D
+
+    @SP
+    MD=M+1
+
+    @LCL  //LCL = SP (reposition LCL)
+    M=D
+
+    @{5+nArgs} //ARG = SP-5-nArgs   (reposition ARG)
+    D=A
+    @SP
+    A=M
+    D=A-D
+    @ARG
+    M=D
+        
+    @{fName}
+    0;JMP    //jump to function label
+
+    (return_from_{fName}_{i})
+  """
+  return ret.splitlines()
 
 
 """
@@ -326,7 +392,16 @@ def cmd_call(fName:string,nArgs:int):
 repeat nVars times: push 0
 """
 def cmd_function(label:string,nVars:int):
-  pass
+  ret = [f"({label})"]
+  if nVars>0:
+    ret.append("@SP")
+    ret.append("A=M")
+    for i in range(nVars):
+      ret.append("M=0")
+      ret.append("AD=A+1")
+    ret.append("@SP")
+    ret.append("M=D")
+  return ret
 
 """
 endFrame = LCL          // put LCL in a temp variable
@@ -340,4 +415,61 @@ LCL  = *(endFrame-4)
 goto retAddr
 """
 def cmd_return():
-  pass
+  ret = """
+    @LCL  
+    D=M
+    @R13  //save endFrame-1
+    M=D-1
+    @5
+    A=D-A //calculate LCL-5
+    D=M
+    @R14  //save return address
+    M=D
+
+    @SP
+    A=M-1
+    D=M   //pop()
+    @ARG
+    A=M
+    M=D   //set return value
+    D=A+1 //reposition SP after return value
+    @SP
+    M=D
+
+    @R13  //restore THAT
+    A=M
+    D=M
+    @THAT
+    M=D
+
+    @R13 //restore THIS
+    AM=M-1
+    D=M
+    @THIS
+    M=D
+
+    @R13 //restore ARG
+    AM=M-1
+    D=M
+    @ARG
+    M=D
+
+    @R13  //restore LCL
+    AM=M-1
+    D=M
+    @LCL
+    M=D
+
+    @R14
+    A=M
+    0;JMP
+
+  """
+  return ret.splitlines()
+
+def call_sys_init():
+  ret = """
+    @Sys.init
+    0;JMP
+  """
+  return ret.splitlines()

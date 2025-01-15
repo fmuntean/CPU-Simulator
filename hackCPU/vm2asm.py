@@ -8,6 +8,8 @@ assembly code from it, using the services of the Parser and a CodeWriter.
 
 
 
+import os
+import string
 from sys import argv
 
 from CodeWriter import CodeWriter
@@ -27,26 +29,42 @@ class VMTranslator:
             continue
           if line =='\n':
             continue
-          if line.startswith('//'):
+          if line.strip().startswith('//'):
             self.writer.WriteComment(line)
             continue
           
           self.writer.WriteComment(f"\n//{line}")
           
           cmd,arg1,arg2 = self.parser.Parse(line)
-          arg2 = 0 if arg2 is None else int(arg2)
+          arg2 = 0 if arg2 in (None,'','//')  else int(arg2)
           self.writer.Translate(cmd,arg1,arg2)
 
-      
+
+def getVMFiles(folder:string):
+  ret =[]
+   # r=root, d=directories, f = files
+  for r, d, f in os.walk(vmFolder):
+    for file in f:
+      if file.endswith(".vm"):
+          ret.append(os.path.join(r, file))
+  return ret
+
 
 
 if __name__ == '__main__':
-  vmFile = "BasicTest.vm" #argv[0]
-  asmFile = vmFile[:-3]+".asm"
+  vmFolder = 'lab08\\FibonacciElement' #argv[1]
+  asmFile = vmFolder.split(os.path.sep)[-1]+".asm"
+    
   with open(asmFile,mode="w") as asm:
-    with open(vmFile,mode="r") as f:
-      writer = CodeWriter(asm)
-      parser = Parser()
-      translator = VMTranslator(parser,writer)
-      translator.Translate(f)
+    writer = CodeWriter(asm)
+    writer.WriteBoostrap()
+    parser = Parser()
+    for vmFile in getVMFiles(vmFolder):
+      with open(vmFile,mode="r") as f:
+        _,sourceFile=os.path.split(vmFile)
+        writer.source = sourceFile[:-3]
+        writer.WriteComment(f"\n// Processing file: {vmFile}\n")
+        translator = VMTranslator(parser,writer)
+        translator.Translate(f)
+
     

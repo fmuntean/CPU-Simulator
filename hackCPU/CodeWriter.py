@@ -33,7 +33,8 @@ map_section={
   'temp': 5,
   'pointer': 3,
   'static':'static',
-  None:None
+  None:None,
+  '':''
 }
 
 
@@ -42,9 +43,12 @@ class CodeWriter:
   def __init__(self,asm):
     self.asm = asm
     self.counter=0
+    self.source=''
 
   def WriteComment(self,line:string):
     self.asm.writelines(line)
+    if line[-1] != '\n':
+      self.asm.write('\n')
   
   def WriteLines(self,lines):
     for l in lines:
@@ -53,46 +57,65 @@ class CodeWriter:
         continue
       self.asm.writelines(line+'\n')
 
-  def Translate(self,cmd:string,arg1:string,arg2:int):
-    section = map_section[arg1]
-    if cmd=='push':
-      ret = cmd_push(section,arg2)
-    elif cmd == 'pop':
-      ret = cmd_pop(section,arg2)
+  def WriteBoostrap(self):
+    #lines = call_sys_init()
+    #TODO: investigate as cmd_call might waste 5 bytes in stack instad of call_sys_init
+    #self.counter+=1
+    lines =call_sys_init() # cmd_call("Sys.init",0,self.counter)
+    self.WriteLines(lines)
+    pass
 
-    elif cmd == 'add':
-      ret = cmd_add()
-    elif cmd=='sub':
-      ret = cmd_sub()
+
+  def Translate(self,cmd:string,arg1:string,arg2:int):
     
-    elif cmd == 'eq':
-      self.counter+=1
-      ret = cmd_eq(self.counter)
-    elif cmd == 'lt':
-      self.counter+=1
-      ret = cmd_lt(self.counter)
-    elif cmd == 'gt':
-      self.counter+=1
-      ret = cmd_gt(self.counter)
-    
-    elif cmd=='and':
-      ret = cmd_and()
-    elif cmd=='or':
-      ret = cmd_or()
-    
-    elif cmd=='neg':
-      ret = cmd_neg()
-    elif cmd=='not':
-      ret = cmd_not()
-    
+    if cmd=='label':
+      ret = cmd_label(arg1)
+    elif cmd=='goto':
+      ret = cmd_goto(arg1)
+    elif cmd=='if-goto':
+      ret = cmd_if_goto(arg1)
     elif cmd=='call':
-      ret = cmd_call(arg1,arg2)
+      self.counter+=1
+      ret = cmd_call(arg1,arg2,self.counter)
     elif cmd=='function':
       ret = cmd_function(arg1,arg2)
     elif cmd=='return':
       ret = cmd_return()
     else:
-      ret=None
+
+      section = map_section[arg1]
+      if cmd=='push':
+        ret = cmd_push(section,arg2,self.source)
+      elif cmd == 'pop':
+        ret = cmd_pop(section,arg2,self.source)
+
+      elif cmd == 'add':
+        ret = cmd_add()
+      elif cmd=='sub':
+        ret = cmd_sub()
+      
+      elif cmd == 'eq':
+        self.counter+=1
+        ret = cmd_eq(self.counter)
+      elif cmd == 'lt':
+        self.counter+=1
+        ret = cmd_lt(self.counter)
+      elif cmd == 'gt':
+        self.counter+=1
+        ret = cmd_gt(self.counter)
+      
+      elif cmd=='and':
+        ret = cmd_and()
+      elif cmd=='or':
+        ret = cmd_or()
+      
+      elif cmd=='neg':
+        ret = cmd_neg()
+      elif cmd=='not':
+        ret = cmd_not()
+      
+      else:
+        ret=None
     
     if ret != None:
       self.WriteLines(ret)
