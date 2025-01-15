@@ -1,0 +1,53 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/2/FullAdder.hdl
+/**
+ * Computes the sum of three bits.
+ */
+CHIP FullAdder {
+    IN a, b, c;  // 1-bit inputs
+    OUT sum,     // Right bit of a + b + c
+        carry;   // Left bit of a + b + c
+
+    PARTS:
+    //// Replace this comment with your code.
+/*
+| a | b | c |sum|carry|
+| 0 | 0 | 0 | 0 |  0  |
+| 0 | 0 | 1 | 1 |  0  |
+| 0 | 1 | 0 | 1 |  0  |
+| 0 | 1 | 1 | 0 |  1  |
+| 1 | 0 | 0 | 1 |  0  |
+| 1 | 0 | 1 | 0 |  1  |
+| 1 | 1 | 0 | 0 |  1  |
+| 1 | 1 | 1 | 1 |  1  |
+*/
+ //carry =not( not(B and c) and not(a and b) and not(a and c) )
+ Nand(a=a , b=b , out=c01 );
+ Nand(a=b , b=c , out=c02 );
+ Nand(a=a , b=c , out=c03 );
+ And(a=c01 , b= c02, out=c04 );
+ Nand(a=c04 , b=c03 , out=carry );
+ 
+ //sum = (!a and !b and c) OR (!a and b and !c) or (a and !b and !c) or (A and b and c)
+ //sum = not( nand(!a,!b,c) and nand(!a,b,!c) and nand(a,!b,!c) and nand(a,b,c)
+ Not(in=a , out=a1 );
+ Not(in=b , out=b1 );
+ Not(in=c , out=c1 );
+
+ And(a=a1 , b=b1 , out=ab1 );
+ And(a=a1 , b=c1 , out=ac1 );
+ And(a=b1,  b=c1 , out=bc1 );
+ And(a=a,   b=b,   out=ab);
+
+ And(a=c , b=ab1, out=ab1c);
+ And(a=b , b=ac1 , out=ac1b);
+ And(a=a , b=bc1 , out=bc1a);
+ And(a=ab, b=c,   out=abc);
+
+ Or(a=ab1c, b=ac1b, out=sum1);
+ Or(a=bc1a , b=abc , out=sum2 );
+ Or(a=sum1 , b=sum2 , out=sum );
+ 
+}
