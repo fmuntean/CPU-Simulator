@@ -59,9 +59,17 @@ class CodeWriter:
 
   def WriteBoostrap(self):
     #lines = call_sys_init()
-    #TODO: investigate as cmd_call might waste 5 bytes in stack instad of call_sys_init
     #self.counter+=1
-    lines =call_sys_init() # cmd_call("Sys.init",0,self.counter)
+    #lines =call_sys_init() 
+    #TODO: investigate as cmd_call might waste 5 bytes in stack instead of call_sys_init
+    init_SP = """
+      @256
+      D=A
+      @SP
+      M=D
+    """.splitlines()
+    self.WriteLines(init_SP)
+    lines= cmd_call("Sys.init",0,self.counter)
     self.WriteLines(lines)
     pass
 

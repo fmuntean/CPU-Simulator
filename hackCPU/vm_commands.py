@@ -317,7 +317,7 @@ def cmd_if_goto(lbl:string):
     AM=M-1
     D=M
     @{lbl}
-    D;JGT
+    D;JNE   //not equal to zero
   """
   return ret.splitlines()
 
