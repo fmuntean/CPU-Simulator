@@ -1,0 +1,25 @@
+/* Represents the basic Program */
+class Program {
+    field List lines; //a list of program lines
+    
+
+    constructor Program new(){
+      let lines = List.new();
+      
+      return this;
+    }
+
+    method void clear(){
+      lines.clear();
+      return;
+    }
+
+    method void list(){
+      return;
+    }
+
+    method void run(){
+      return;
+    }
+
+}

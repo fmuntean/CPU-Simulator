@@ -1,0 +1,15 @@
+class Main {
+
+  //Main entry point
+  function void main(){
+    var Basic basic;
+    
+    do Output.printString("hackBASIC v1.0");
+    do Output.println();
+    
+    let basic = Basic.init();
+    do basic.run();
+  }
+
+
+}

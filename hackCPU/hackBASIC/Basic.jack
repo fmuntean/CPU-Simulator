@@ -1,0 +1,166 @@
+//The BASIC Interpretter
+class Basic {
+  field Program program;
+  field Array vars; 
+  field boolean exit;
+
+  //initialize the basic interpretter
+  constructor Basic init(){
+    let vars = Array.new(27);
+    let program = Program.new();
+    return this;
+  }
+
+  method void run(){
+    let exit = false;
+
+    do Basic.init();
+
+    while(~exit){
+      do Output.println();
+      
+      do parse_line(); //read and execute command
+    }
+
+    return;
+  }
+
+  method void parse_line(){
+    var String line;
+    var int i;
+    var int len;
+    var char c;
+
+    //read line from keyboard;
+    let line = Keyboard.readLine("#");
+
+    let c = line.getCharAt(0);
+    if (c>=48) & (C<=57) {
+      program.addLine(line);
+      return;
+    }
+
+    //parse line and execute
+    let i=0;
+    let len = line.lenth()
+    while(i<len){
+      let c = line.getCharAt(i);
+      while (c==32){ //skip spaces
+        let i=i+1
+        let c = line.getCharAt(i);  
+      }
+
+      if (c=='I'){
+        let i=i+1;
+        let c=line.getCharAt(i);
+        if (c=='N') {
+          let i=i+4; 
+          do cmd_input();
+        } else {
+          let i=i+1; 
+          do cmd_if();
+        }
+      }
+      
+      if (c=='G'){
+        let i=i+1;
+        let c=line.getCharAt(i);
+        if (c=='O'){
+          let i=i+1;
+          let c=line.getCharAt(i);
+          if (c=='T') {let i=i+2; do cmd_goto();}else{let i=i+3; do cmd_gosub();}
+        }
+      }
+      
+
+      if (c=='L'){
+        let i=i+1;
+        let c=line.getCharAt(i);
+        if (c='I'){let i=i+2; do cmd_list();} else {let i+2; do cmd_let();}
+
+
+      if (c=='N') {
+        let i=i+1;
+        let c = line.getCharAt(i);
+        if (c=='E'){
+          let i=i+1;
+          let c = line.getCharAt(i);
+          if (c=='W'){ do cmd_new();} else {let i=i+2; do cmd_next();}
+        }
+      }
+
+      if (c=='P'){
+        let i=i+5;
+        do cmd_print();
+      }
+
+      if (c=='R'){
+        let i=i+2;
+        do cmd_run();
+      }
+
+    }
+      
+
+    return;
+  }
+
+  method void exit(){
+    let exit = true;
+    return;
+  }
+
+
+
+
+  method void cmd_new(){
+    do vars.clear();
+    do program.clear();
+    return;
+  }
+
+  method void cmd_input(){
+    return;
+  }
+
+  method void cmd_if(){
+    return;
+  }
+
+
+  method void cmd_goto(){
+    return;
+  }
+
+  method void cmd_gosub(){
+    return;
+  }
+
+
+  method void cmd_for(){
+    return;
+  }
+  method void cmd_next(){
+    return;
+  }
+  method void cmd_let(){
+    return;
+  }
+
+  method void cmd_list(){
+    do program.list();
+    return;
+  }
+
+  method void cmd_print(){
+    return;
+  }
+
+  method void cmd_run(){
+    do program.run();
+    return;
+  }
+
+
+
+}
