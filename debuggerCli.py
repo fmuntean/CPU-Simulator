@@ -54,6 +54,11 @@ class Debugger():
       ret = self.socket.recv(1024).decode()
       return ret.split("/r/n")
 
+    def get_mem(self,start,length):
+      self.socket.sendall(f"get_mem,{start},{length}".encode())
+      ret = self.socket.recv(1024).decode()
+      return ret.split("/r/n")
+
     def execute(self,cmd):
       cmd = cmd.replace(' ',',').lower()
         

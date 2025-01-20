@@ -21,7 +21,7 @@ class Debugger(Thread):
  
     def list_cmd(self,address=None):
         address = self.cpu.PC if address == None else address
-        o = self.cpu.getOpcode(address)
+        o,instr = self.cpu.getOpcode(address)
         if o == None:
             return "unknown"
         ret = o.decode(self.cpu, address)
@@ -29,11 +29,11 @@ class Debugger(Thread):
     
     def get_opcodes(self,address=None):
         address = self.cpu.PC if address==None else address
-        o = self.cpu.getOpcode(address)
+        o,instr = self.cpu.getOpcode(address)
         if o == None:
             return f"{self.mem[address & 0xFFFF]:02X}"
-        ret=self.mem[address:address+o.length]
-        return ret.hex(' ').upper()
+        ret=self.mem[address:address+o.length] if instr == None else instr
+        return f"{ret:X}" # ret.hex(' ').upper()
 
     def list_regs(self):
         return self.cpu.getRegisters()
@@ -85,6 +85,20 @@ class Debugger(Thread):
             
            
             return self.get_opcodes(addr)
+        
+        if cmd.startswith('get_mem'):
+            cmd = cmd.replace(' ',',')
+            s = cmd.split(',')
+            #by default we use base 16 and we prefix with d for decimal values
+           
+            start = int(s[1],base=10)
+            
+            #by default we use base 16 and we prefix with d for decimal values
+            length = int(s[2],base=10)
+            
+            ret = self.mem[start:start+length]
+
+            return '/r/n'.join([str(num) for num in ret])
         
         if cmd.startswith('list_mem'):
             cmd = cmd.replace(' ',',')

@@ -30,6 +30,7 @@ class MC6800:
 
 
     def __init__(self,fetchMemory=None,setMemory=None):
+        self.fetchInstruction = fetchMemory # the same memory is shared between code and data
         self.fetchMemory = fetchMemory
         self.setMemory = setMemory
         if fetchMemory is not None:

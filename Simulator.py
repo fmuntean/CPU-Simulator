@@ -24,9 +24,12 @@ class Simulator(Thread):
       if (d.match(address)):
           return d.read(address,peek)
       else:
-          return self.mem[address & 0xFFFF]
+          return self.mem[address % len(self.mem)]
+    return self.mem[address % len(self.mem)]
 
   def setMemory(self, address, value):
+    if len(self.devices)==0:
+       self.mem[address % len(self.mem)] = value
     for d in self.devices:
       if (d.match(address)):
           d.write(address,value)
@@ -35,6 +38,7 @@ class Simulator(Thread):
             if address>=start and address<=end:
                 raise ROMError(f"ROM protected Area: 0x{address:4X}")
         self.mem[address & 0xFFFF] = value
+    
         
   def setROM(self,fromAddr,toAddr):
     #we add a protect range

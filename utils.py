@@ -77,6 +77,24 @@ def loadS19(mem,file):
                 addr+=1
 
 
+"""
+Loads a memory file
+The format is numbers for each line
+"""
+def loadMem(mem,file):
+    lines = []
+    addr = 0
+    with open(file,mode="r") as f:
+        lines = f.readlines()
+    for l in lines:
+        if len(l.strip())==0:
+            continue
+        if l.startswith('//'):
+            continue
+        mem[addr]=int(l,16 if l.startswith("0x") else 10)
+        addr+=1
+
+
 if __name__ == '__main__':
     mem = bytearray(0x10000) 
     loadHex(mem,'D:/git/arduino/ePromProgrammer/ROMS/EPROM_2K_TMS2516.hex')

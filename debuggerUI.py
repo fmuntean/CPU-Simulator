@@ -35,7 +35,7 @@ class DebuggerUI:
         screen.refresh()
         
         padTop = curses.newpad(1,120)
-        winBot = curses.newwin(1,x,11,0)
+        winBot = curses.newwin(1,x,10,0)
         
         winBot.keypad(1)
         
