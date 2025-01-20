@@ -32,8 +32,8 @@ class Debugger(Thread):
         o,instr = self.cpu.getOpcode(address)
         if o == None:
             return f"{self.mem[address & 0xFFFF]:02X}"
-        ret=self.mem[address:address+o.length] if instr == None else instr
-        return f"{ret:X}" # ret.hex(' ').upper()
+        ret=self.mem[address:address+o.length].hex(' ').upper() if instr == None else f"{instr:X}"
+        return ret 
 
     def list_regs(self):
         return self.cpu.getRegisters()

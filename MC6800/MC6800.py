@@ -148,7 +148,7 @@ class MC6800:
     def getOpcode(self,index):
         ops = list(filter(lambda x: x.code == self.fetchMemory(index), opcodes)) 
         op = ops[0] if ops else None
-        return op
+        return op,None
     
     def getRegisters(self):
         # status register SR highest two bits are always 11 H I N Z V C

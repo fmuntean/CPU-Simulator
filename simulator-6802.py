@@ -1,6 +1,6 @@
 from MC6800.MC6800 import MC6800
 from debuggerSrv import Debugger
-from simulator import Simulator
+from Simulator import Simulator
 from utils import loadHex
 
 #from devices.acia import UART

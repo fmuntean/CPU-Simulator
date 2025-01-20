@@ -27,7 +27,7 @@ class myCPU:
 
     def getOpcode(self,index):
         op =  list(filter(lambda x: x.code == self.fetchMemory(index), opcodes))[0]
-        return op
+        return op,None
     
     def getRegisters(self):
         return "|PC:{0:04X}|A:{1:02X}|B:{2:02X}|Z:{3:d}|C:{4:d}|".format(self.PC, self.registers[0], self.registers[1], self.ZERO, self.CARRY )

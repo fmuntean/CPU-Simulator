@@ -1,8 +1,9 @@
 
 
 from sampleCPU.sampleCpu import myCPU
-from debugger import Debugger
-from simulator import Simulator
+from debuggerSrv import Debugger
+from Simulator import Simulator
+from utils import loadHex
 
 mem = bytearray(256) # 256 bytes of memory
 
@@ -15,11 +16,20 @@ def setMemory(address, value):
 
 cpu = myCPU(fetchMemory,setMemory)
 
+#define the simulator board
+simulator = Simulator(cpu,mem,None)
 
-debugger = Debugger(cpu,mem)
+#hookup the debugger to the simulator board
+debugger = Debugger(simulator)
+
 
 if __name__ == '__main__':
-   sim = Simulator()
-   #Simulator.loadHex(mem,"sampleCPU/sample.hex")
-   sim.start(debugger)
    
+   loadHex(mem,"cpu-simulator/sampleCPU/sample.hex")
+   cpu.reset()
+   
+   simulator.isRunning = False
+   simulator.start()
+   debugger.start()
+   
+   simulator.join() # wait here
