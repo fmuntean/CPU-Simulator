@@ -49,14 +49,18 @@ class hackCPU:
     
     
   def step(self):
-    op,instr = self.getOpcode(self.PC)
-    return op.execute(self,instr)
+    #op,instr = self.getOpcode(self.PC)
+    #return op.execute(self,instr)
 
-  def getOpcode(self,addr):
-    instr = self.fetchInstruction(addr)
-    index = instr >> 15
-    op = opcodes[index]
-    return op,instr
+  #def getOpcode(self,addr):
+    instr = self.fetchInstruction(self.PC)
+    if instr & 0x8000:
+      return opcodes[1].execute(self,instr)
+    else:
+      return opcodes[0].execute(self,instr)
+    #index = instr >> 15
+    #op = opcodes[index]
+    #return op,instr
   
   def getRegisters(self):
     return "|PC:{0:04X}|A:{1:04X}|D:{2:04X}|Z:{3:d}|N:{4:d}|".format(self.PC, self.registers[0], self.registers[1], self.zr, self.ng )
@@ -80,7 +84,7 @@ class opcode_A(opcode):
       
   def execute(self,cpu:hackCPU,instr):
     cpu.PC+=1
-    cpu.setA(instr)
+    cpu.registers[0]=instr  #cpu.setA(instr)
     cpu.zr = 1 if instr==0 else 0
     cpu.ng = 0 # the numbers here can't be negative as the first bit is always 0
     return True
@@ -195,22 +199,25 @@ class opcode_C(opcode):
   # dest=comp;jump
   # 111a c1c2c3c4 c5c6d1d2 d3j1j2j3
   def execute(self,cpu:hackCPU,instr):
-    dest,jump,comp = opcode_C.extract(instr)
+    #dest,jump,comp = opcode_C.extract(instr)
+
+    #dest = (instr >> 3) & 0x07 # extract d1d2d3
+    jump = (instr & 0x07) # extract j1j2j3
+    comp = (instr >> 6) & 0x7F # extract a c1c2c3c4c5c6
 
     val = ALU[comp](cpu) # execute the ALU instruction
     cpu.zr = 1 if val==0 else 0
-    cpu.ng = (val >> 15) & 0x01
+    cpu.ng = 0 if (val & 0x8000) == 0 else 1 #(val >> 15) & 0x01
 
-    cpu.PC = jumps[jump](cpu)
     
-    if dest & 0b001: # store into M
+    if instr & 0b001000: # store into M
       cpu.setM(val)
-    if dest & 0b010: # store into D
+    if instr & 0b010000: # store into D
       cpu.setD(val)
-    if dest & 0b100: # store into A
+    if instr & 0b100000: # store into A
       cpu.setA(val)         
 
-    
+    cpu.PC = jumps[jump](cpu)
     
     return True
 

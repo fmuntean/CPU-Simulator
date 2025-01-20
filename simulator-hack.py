@@ -25,7 +25,7 @@ def setMemory(address, value):
 cpu = hackCPU(fetchInstruction,fetchMemory,setMemory)
 
 #define the simulator board
-simulator = Simulator(cpu,ram,[])
+simulator = Simulator(cpu,ram,None)
 
 #hookup the debugger to the simulator board
 debugger = Debugger(simulator)

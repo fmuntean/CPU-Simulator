@@ -9,8 +9,9 @@ class Simulator(Thread):
   def __init__(self,cpu,mem,devices) -> None:
     Thread.__init__(self,name="SimulatorThread")
     self.cpu = cpu
-    cpu.fetchMemory = self.fetchMemory
-    cpu.setMemory = self.setMemory
+    if devices is not None:
+      cpu.fetchMemory = self.fetchMemory
+      cpu.setMemory = self.setMemory
     self.mem = mem
     self.devices = devices
     self.protect = [] # an array of tuples of memory ranges to protect from writing
@@ -25,6 +26,7 @@ class Simulator(Thread):
           return d.read(address,peek)
       else:
           return self.mem[address % len(self.mem)]
+
     return self.mem[address % len(self.mem)]
 
   def setMemory(self, address, value):
