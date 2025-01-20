@@ -6,7 +6,10 @@
 // Draws a rectangle at the top-left corner of the screen.
 // The rectangle is 16 pixels wide and R0 pixels high.
 // Usage: Before executing, put a value in R0.
-
+   @30
+   D=A
+   @R0
+   M=D
    // If (R0 <= 0) goto END else n = R0
    @R0
    D=M

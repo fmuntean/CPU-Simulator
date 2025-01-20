@@ -233,9 +233,8 @@ def cmd_lt(i:int):
     D=M-D
     @lt.skip.{i}
     D;JLT
-    D=0
     @lt.end.{i}
-    0;JMP
+    D=0;JMP
     (lt.skip.{i})
     D=-1
     (lt.end.{i})
@@ -261,9 +260,8 @@ def cmd_gt(i:int):
     D=M-D
     @gt.skip.{i}
     D;JGT
-    D=0
     @gt.end.{i}
-    0;JMP
+    D=0;JMP
     (gt.skip.{i})
     D=-1
     (gt.end.{i})
