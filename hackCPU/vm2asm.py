@@ -9,12 +9,23 @@ assembly code from it, using the services of the Parser and a CodeWriter.
 
 
 import os
+import re
 import string
 from sys import argv
 
 from CodeWriter import CodeWriter
-from Parser import  Parser
 
+
+
+class Parser:
+  def Parse(self,line):
+    #cmt = line.find("//")
+    #if cmt>0:
+    #  line=line[0..cmt]
+    ret = re.split(' |\t|\n|//', line.strip())
+    while len(ret)<3:
+      ret.append(None)
+    return (ret[:3])
 
 
 class VMTranslator:

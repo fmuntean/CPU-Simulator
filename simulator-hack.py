@@ -7,7 +7,7 @@
 from debuggerSrv import Debugger
 from hackCPU.hackCPU import hackCPU
 from hackCPU.screen import Screen
-from simulator import Simulator
+from Simulator import Simulator
 from utils import loadMem
 
 ram = [0x0000] * 32768  # 32K words of memory
@@ -38,12 +38,12 @@ if __name__ == '__main__':
     # Start the screen in a separate thread
    screen.start()
    
-   loadMem(rom,"hackCPU/pong.rom")
+   loadMem(rom,"hackCPU/pong/pong.hack.rom")
    #loadMem(rom,"hackCPU/Lab06/Rect.rom")
    #loadMem(rom,"hackCPU/hackCPU.rom")
    cpu.reset()
    
-   simulator.isRunning = False #set this to true if you want to start or false to not run the code
+   simulator.isRunning = True #set this to true if you want to start or false to not run the code
    simulator.start()
    debugger.start()
    

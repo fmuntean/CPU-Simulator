@@ -171,14 +171,14 @@ j1	j2	j3	Branch if	Mnemonic
 1	1	1	Unconditional branch	JMP
 """
 jumps = {
-  0b000: lambda cpu,o: cpu.PC+1,                       #no jump
-  0b001: lambda cpu,o: cpu.A() if o>0  else cpu.PC+1,  #JGT
-  0b010: lambda cpu,o: cpu.A() if o==0 else cpu.PC+1,  #JEQ
-  0b011: lambda cpu,o: cpu.A() if o>=0 else cpu.PC+1,  #JGE
-  0b100: lambda cpu,o: cpu.A() if o<0  else cpu.PC+1,  #JLT
-  0b101: lambda cpu,o: cpu.A() if o!=0 else cpu.PC+1,  #JNE
-  0b110: lambda cpu,o: cpu.A() if o<=0 else cpu.PC+1,  #JLE
-  0b111: lambda cpu,o: cpu.A()                         #JMP
+  0b000: lambda cpu: cpu.PC+1,                                         #no jump
+  0b001: lambda cpu: cpu.A() if cpu.zr==0 and cpu.ng==0  else cpu.PC+1,  #JGT
+  0b010: lambda cpu: cpu.A() if cpu.zr==1 else cpu.PC+1,               #JEQ
+  0b011: lambda cpu: cpu.A() if cpu.ng==0 else cpu.PC+1,               #JGE
+  0b100: lambda cpu: cpu.A() if cpu.ng==1 else cpu.PC+1,               #JLT
+  0b101: lambda cpu: cpu.A() if cpu.zr==0 else cpu.PC+1,               #JNE
+  0b110: lambda cpu: cpu.A() if cpu.zr==1 or cpu.ng==1 else cpu.PC+1,   #JLE
+  0b111: lambda cpu: cpu.A()                                           #JMP
 }
 
 class opcode_C(opcode):
@@ -201,6 +201,8 @@ class opcode_C(opcode):
     cpu.zr = 1 if val==0 else 0
     cpu.ng = (val >> 15) & 0x01
 
+    cpu.PC = jumps[jump](cpu)
+    
     if dest & 0b001: # store into M
       cpu.setM(val)
     if dest & 0b010: # store into D
@@ -208,7 +210,7 @@ class opcode_C(opcode):
     if dest & 0b100: # store into A
       cpu.setA(val)         
 
-    cpu.PC = jumps[jump](cpu,val)
+    
     
     return True
 
@@ -303,24 +305,36 @@ opcodes = [
 
 
 if __name__ == '__main__':
-
+  mem = [0]*0x8000
   def fetchMem(addr):
-      return 0
+      return mem[addr % 0x7FFF]
   
-  cpu = hackCPU(fetchMem,fetchMem,fetchMem)
+  def setMem(addr,val):
+    mem[addr % 0x7FFF]=val
+  
+  cpu = hackCPU(fetchMem,fetchMem,setMem)
+  cpu.reset()
+  cpu.setD(321)
 
   asmFile = __file__[:-2]+'asm'
-  with open(asmFile,mode="w") as asm:
-    asm.write("//hackCPU instructions test\n\n")
+  lstFile = __file__[:-2]+'lst'
+  with open(lstFile,mode='w') as lst:
+    with open(asmFile,mode="w") as asm:
+      asm.write("//hackCPU instructions test\n\n")
 
-    op=opcode_A()
-    asm.write(f"{op.getText(123)}\n")
+      op=opcode_A()
+      asm.write(f"{op.getText(123)}\n")
+      op.execute(cpu,123)
 
-    op=opcode_C()
-    for jump in range(8):
-      for dest in range(8):
-        for comp in ALU.keys():      
-          # 111a c1c2c3c4 c5c6d1d2 d3j1j2j3
-          instr = 0x8000 | (comp<<6) | (dest<<3) | jump
-          asm.write(f"{op.getText(instr)}\n")
-          print(f"{instr:X} => {op.getText(instr )}")
+      lst.write(f"{op.getText(123):12s}\t{cpu.getRegisters()}\n")
+
+      op=opcode_C()
+      for jump in range(8):
+        for dest in range(1,8):
+          for comp in ALU.keys():      
+            # 111a c1c2c3c4 c5c6d1d2 d3j1j2j3
+            instr = 0x8000 | (comp<<6) | (dest<<3) | jump
+            asm.write(f"{op.getText(instr)}\n")
+            print(f"{instr:X} => {op.getText(instr )}")
+            op.execute(cpu,instr)
+            lst.write(f"{op.getText(instr):12s}\t{cpu.getRegisters()}\tM=0x{fetchMem(cpu.A()):04X}\n")

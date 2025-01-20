@@ -40,6 +40,21 @@ labels = {
   "@THAT":4
 }
 
+def listVars(lst):
+  lst.write(f"\n{'-'*80}\n")
+  lst.write("\t\t\t VARIABLES\n")
+  lst.write(f"{'-'*80}\n")
+  for i in range(len(vars)):
+    lst.write(f"0x{i:04X}\t{vars[i]}\n")
+
+def listLabels(lst):
+  lst.write(f"\n{'-'*80}\n")
+  lst.write("\t\t\t LABELS\n")
+  lst.write(f"{'-'*80}\n")
+  for k,v in labels.items():
+    lst.write(f"0x{v:04X}\t{k}\n")
+
+
 def getOpcodeA(line):
   #check if constant
   if line[1:].isnumeric():
@@ -51,9 +66,12 @@ def getOpcodeA(line):
   for i in range(len(vars)):
     if vars[i]==line:
       return i
+  #the variable is not found so we add it
+  vars.append(line)
+  return len(vars)-1
   
 
-#first pass extracts labels and variables 
+#first pass extracts labels only
 def pass1(asm):
   addr = 0
   for line in asm:
@@ -65,11 +83,8 @@ def pass1(asm):
       labels[f"@{l[1:-1]}"]=addr
       continue
     if l.startswith('@'):
-      if l[1:].isnumeric():
-        addr+=1
-        continue
-      if l not in vars:
-        vars.append(l)
+      addr+=1
+      continue
     addr+=1
 
 
@@ -107,9 +122,9 @@ def cleancomments(line):
   return line if pos==-1 else line[:pos].strip()
 
 if __name__ == '__main__':
-  asmFile = "hackCPU/pong.asm" # argv[1]
+  asmFile = "hackCPU/pong/pong.asm" # argv[1]
   #asmFile = "hackCPU/Lab06/Rect.asm"
-  asmFile = "hackCPU/hackCPU.asm"
+  #asmFile = "hackCPU/hackCPU.asm"
   romFile = asmFile[:-3]+'rom' # replace .asm with .rom
   lstFile = asmFile[:-3]+'lst' # replace .asm with .lst
   with open(asmFile,mode="r") as asm:
@@ -119,3 +134,5 @@ if __name__ == '__main__':
     with open(romFile,mode="w") as rom:
       with open(lstFile,mode="w") as lst:
         assemble(asm,rom,lst)
+        listVars(lst)
+        listLabels(lst)

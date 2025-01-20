@@ -49,7 +49,7 @@ class Screen:
             addr = 16384+y*32+x
             val = self.fetchMem(addr)
             for i in range(16):
-              bit = (val >> (15 - i)) & 1  # Extract the x-th bit (MSB to LSB)
+              bit = (val >> (i)) & 1  # Extract the x-th bit (LSB to MSB)
               color = (255, 255, 255) if bit == 0 else (0, 0, 0)  # White for 1, Black for 0
               # Set the pixel color on the surface
               surface.set_at((x*16+i, y), color)
