@@ -185,6 +185,7 @@ class CompilationEngine:
     if tkn.tokenType=='identifier':
       ret.add(tkn)
       className = tkn.val
+      SymbolTable.add('class',className,'class')
       self.nextToken(ret)
     else:
       raise Exception(tkn)
@@ -240,6 +241,9 @@ class CompilationEngine:
       ret.add(tkn)
       tkn=self.nextToken(ret)
 
+    s = SymbolTable.getSymbol('class')
+    s.name= s.type+ "."+tkn.val
+    tkn.add(s)
     ret.add(tkn) # subroutineName
     
     tkn = self.nextToken(ret)
@@ -677,6 +681,7 @@ if __name__ == '__main__':
   srcFolder = 'Lab10/ArrayTest' #argv[1]
   srcFolder = 'lab10/ExpressionLessSquare'
   srcFolder = 'lab10/Square'
+  srcFolder = 'lab11/Seven'
   
   for srcFile in getJackFiles(srcFolder):
     print(f"\n Processing file: {srcFile}\n")
