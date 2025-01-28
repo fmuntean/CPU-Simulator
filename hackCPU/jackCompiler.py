@@ -3,7 +3,10 @@
 from csv import Error
 import os
 import string
+from symtable import SymbolTable
 from xml.sax.saxutils import escape
+
+from sympy import Symbol
 
 
 keywords =['class','constructor','function','method','field','static','var','int','char',
@@ -26,6 +29,8 @@ class Token:
     self.childrens = None
 
   def add(self,tkn):
+    if tkn is None: return
+
     if self.childrens is None:
       self.childrens = [tkn]
     else:
@@ -41,6 +46,7 @@ class Token:
     
     ret = f"{' '*ident}<{self.tokenType}>\n"
     for child in self.childrens: 
+      if child is None: continue
       ret+=child.toXml(ident+2)
       ret+='\n'
     ret+=f"{' '*ident}</{self.tokenType}>"
@@ -159,6 +165,9 @@ class CompilationEngine:
     return ret
     
   def nextToken(self,token=None):
+    '''
+      returns next token and add comments to the specified token
+    '''
     tk=self.tknzr.advance()
     while(tk is not None and tk.tokenType=='COMMENT'):
       if token: token.add(tk)
@@ -168,11 +177,14 @@ class CompilationEngine:
   
   # class: 'class' className '{' classVarDec* subroutineDec* '}'
   def compileClass(self): # parses class statement
+    SymbolTable.startScope()
+
     ret = Token('class')
     tkn =  self.eat('class',ret)
 
     if tkn.tokenType=='identifier':
       ret.add(tkn)
+      className = tkn.val
       self.nextToken(ret)
     else:
       raise Exception(tkn)
@@ -184,18 +196,31 @@ class CompilationEngine:
       if tkn: ret.add(tkn)
 
     while self.tknzr.tokenVal() != '}':
+      tk = self.tknzr.token
+      if tk.val == 'method':
+        SymbolTable.add('this',className,'argument')
       tkn = self.compileSubroutineDec()
       if tkn: ret.add(tkn)
 
     self.eat('}',ret)
+    SymbolTable.endScope()
     return ret
 
   # classVarDec: ('static'|'field') type varName (',' varName)* ';'
   def compileClassVarDec(self):
     ret = Token('classVarDec')
+    
+    kind = self.tknzr.tokenVal().replace('field','this')
+    
     tk = self.eat(['static','field'],ret)
 
+    varType = tk.val 
+    tk= self.nextToken(ret)
+
     while tk.val !=';':
+      if tk.val!=',':
+        tk.add(SymbolTable.add(tk.val,varType,kind))
+        
       ret.add(tk)
       tk=self.nextToken(ret) 
 
@@ -205,6 +230,8 @@ class CompilationEngine:
   # subroutineDec: ('constructor'|'function'|'method') ('void'|type) subroutineName '(' parameterList ')' subroutineBody
   # type: 'int'|'char'|'boolean'|className
   def compileSubroutineDec(self):
+    SymbolTable.startScope()
+
     ret = Token('subroutineDec')
 
     tkn = self.eat(['constructor','function','method'],ret)
@@ -226,7 +253,7 @@ class CompilationEngine:
     tkn = self.compileSubroutineBody()
     if tkn: ret.add(tkn)
 
-
+    SymbolTable.endScope()
     return ret
 
 
@@ -234,9 +261,20 @@ class CompilationEngine:
   # parameterList: ( (type varName) (',' type varName)* )?
   def compileParameterList(self):
     ret = Token('parameterList')
+
     while self.tknzr.tokenVal() != ')':
-      ret.add(self.tknzr.token)
-      self.nextToken(ret)
+      tk = self.tknzr.token
+      varType = tk.val     
+      #ret.add(tk) #type
+      
+      tk = self.nextToken(ret) # varName
+      tk.add(SymbolTable.add(tk.val,varType,'argument'))
+      ret.add(tk)
+
+      tk = self.nextToken(ret)
+      if tk.val==',':
+        self.eat(',')
+      
     return ret    
   
   #subroutineBody: '{' varDec* statements '}'
@@ -257,11 +295,16 @@ class CompilationEngine:
   # varDec: 'var' type varName (',' varName)* ';'
   def compileVarDec(self):
     ret = Token('varDec')
-    ret.add(self.tknzr.token)
-    self.nextToken(ret)
-    while self.tknzr.tokenVal() != ';':
-      ret.add(self.tknzr.token)
-      self.nextToken(ret)
+    tk = self.eat('var',ret)
+
+    varType = tk.val
+    tk = self.nextToken(ret)
+
+    while tk.val != ';':
+      if tk.val != ',':
+        tk.add(SymbolTable.add(tk.val,varType,'local'))
+      ret.add(tk)
+      tk = self.nextToken(ret)
     
     ret.add(self.tknzr.token)
     self.eat(';')
@@ -289,10 +332,11 @@ class CompilationEngine:
   def compileLet(self): # parses a let statement
     ret = Token('letStatement')
     tkn = self.eat('let',ret)
-    ret.add(tkn)
+    
+    tkn.add(SymbolTable.getSymbol(tkn.val))
+    ret.add(tkn) # varName
 
     tkn = self.nextToken(ret)
-    
     if tkn.val=='[':
       self.eat('[',ret)
       tkn = self.compileExpression(']') 
@@ -316,6 +360,9 @@ class CompilationEngine:
     ret = Token('doStatement')
     tkn = self.eat('do',ret)
 
+    if tkn.tokenType=='identifier':
+      symbol = SymbolTable.getSymbol(tkn.val)
+      if symbol: tkn.add(symbol)
     ret.add(tkn) # subroutineName or className or varName
 
     tk = self.nextToken()
@@ -437,11 +484,6 @@ class CompilationEngine:
       tk = self.compileTerm()
       ret.add(tk)
 
-    #TODO: implement the (op term)*
-    tk=self.tknzr.token
-    while tk.val not in end:
-      ret.add(tk)
-      tk=self.nextToken(ret)
     return ret
 
   # term: integerConstant | stringConstant | keywordConstant | varName |
@@ -473,7 +515,10 @@ class CompilationEngine:
     if (self.tknzr.tokenType() in ['stringConstant', 'integerConstant', 'identifier']) \
        or (self.tknzr.tokenType()=='keyword' and self.tknzr.tokenVal() in ['this','true','false','null']):
       
-      ret.add(self.tknzr.token)
+      tk = self.tknzr.token
+      if tk.tokenType=='identifier':
+        tk.add(SymbolTable.getSymbol(tk.val))
+      ret.add(tk)
       tk = self.nextToken()
       
       if tk.val=='[':         # varName '[' expression ']'
@@ -495,7 +540,6 @@ class CompilationEngine:
         ret.add(tk)  # subroutineName
         
         self.nextToken(ret)
-        
         self.eat('(',ret)
         tk = self.compileExpressionList(')')
         ret.add(tk)
@@ -543,7 +587,80 @@ class JackAnalyzer:
       
       xml.write(token.toXml())
   
+#------------------------------------------------------------
 
+# symbol not found is assumed to be either subroutine name or a class name
+class Symbol:
+  def __init__(self,name:string,type:string,kind:string,index:int):
+    self.name  = name
+    self.type  = type
+    self.kind  = kind
+    self.index = index
+  pass
+
+  def toXml(self,ident=0):
+    return f"{' '*ident}<variable name='{self.name}' type='{self.type}' kind='{self.kind}' index={self.index} />"
+
+
+class SymbolTable:
+  first = None
+  
+  def __init__(self):
+    self.symbols=[]
+    self.next = None
+    pass
+
+  # call every time starting a class or method
+  def startScope():
+    tbl = SymbolTable()
+    tbl.next = SymbolTable.first
+    SymbolTable.first = tbl
+    pass
+
+  # call every time ending a class or method
+  def endScope():
+    if SymbolTable.first: 
+      SymbolTable.first=SymbolTable.first.next
+    pass
+
+  def add(name,type,kind):
+    tbl = SymbolTable.first
+    index = SymbolTable.varCount(kind)+1
+    s = Symbol(name,type,kind,index)
+    tbl.symbols.append(s)
+    return s
+
+  def varCount(kind):
+    tbl = SymbolTable.first
+    if len(tbl.symbols)==0:
+      return -1
+    
+    kindList = list(filter(lambda x: x.kind==kind, tbl.symbols))
+    return len(kindList)-1  
+  
+  def getSymbol(name):
+    tbl = SymbolTable.first
+    while tbl is not None:
+      symbol = next(filter(lambda x: x.name==name, tbl.symbols),None)
+      if symbol is None:
+        tbl = tbl.next
+      else:
+        return symbol
+    return None 
+
+
+
+
+class VmWriter:
+  def __init__(self):
+    pass
+
+
+  def writePush():
+    pass
+  def writePop():
+    pass
+    
 
 #-------------------------------------------------------------
 def getJackFiles(srcFoolder:string):
