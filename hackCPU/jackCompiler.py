@@ -29,6 +29,7 @@ class Token:
     self.tokenType = tokenType
     self.val = tokenVal
     self.childrens = None
+    self.position = -1
 
   def add(self,tkn):
     if tkn is None: return
@@ -68,15 +69,22 @@ class JackTokenizer:
 
   #Checks if there are more lines to process
   def hasMoreTokens(self):
-    return True if self.index+1<self.len else False
+    return True if self.index+1<=self.len else False
+
+  def getLine(self,tk:Token):
+    endPos = self.lines.find('\n',tk.position)
+    return self.lines[tk.position:endPos]
 
   #Gets the current token and advances the input
   def advance(self):
     self.token= Token()
+   
     self.token.val = ''
     while(self.index<self.len and self.lines[self.index] in whitespaces): self.index+=1 # skip whitespaces
 
-    if self.index==self.len: return None
+    self.token.position=self.index
+    if self.index>=self.len: 
+      return None
 
     if self.lines[self.index]=='"':
       self.index+=1
@@ -88,24 +96,26 @@ class JackTokenizer:
       return self.token
 
     #acumulate token until whitespace or symbol
-    while(self.index<self.len and self.lines[self.index] not in whitespaces and self.lines[self.index] not in symbols):
+    while(self.index<=self.len and self.lines[self.index] not in whitespaces and self.lines[self.index] not in symbols):
       self.token.val+=self.lines[self.index]
       self.index+=1
     
     # if no token found we get next character as it could be symbol
     if len(self.token.val)==0:
-      if self.index+1>=self.len:
+      if self.index>=self.len:
         self.token = None
         return self.token
+      
       self.token.val=self.lines[self.index]
       self.index+=1
       if self.token.val =='/' and self.lines[self.index]=='/': # we have a comment
         self.token.val = ''
         self.token.tokenType = 'comment'
         self.index+=1
-        while(self.index<self.len and self.lines[self.index]!='\n'):
+        while(self.index<=self.len and self.lines[self.index]!='\n'):
           self.token.val+=self.lines[self.index]
           self.index+=1
+        self.token.position = self.index
         return self.token
       elif self.token.val == '/' and self.lines[self.index]=='*': # we have multiline comment
         self.token.val = ''
@@ -141,26 +151,42 @@ class JackTokenizer:
 class VmWriter:
   
 
-  def __init__(self, outFile):
+  def __init__(self, outFile,logLevel=0):
     self.outFile = outFile
+    self.logLevel=logLevel
+    self.tab='    '
     pass
 
-  def writeComment(self,msg:string):
-    self.outFile.write(f"/* {msg} */\n")
+  def writeComment(self,comment:string):
+    if comment and self.logLevel>0:
+      for msg in comment.split('\n'):
+        self.outFile.write(f"// {msg}\n")
 
-  def writeGoTo(self,lbl:string):
-    self.outFile.write(f"goto {lbl}\n")
+  def writeGoTo(self,lbl:string,comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"\ngoto {lbl}{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"{self.tab}goto {lbl}\n")
 
-  def writeGoTo(self,lbl:string):
-    self.outFile.write(f"if-goto {lbl}\n")
+  def writeIfGoTo(self,lbl:string,comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"\nif-goto {lbl}{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"{self.tab}if-goto {lbl}\n")
 
-  def writeCall(self,lbl:string, nArgs:int):
-    self.outFile.write(f"call {lbl} {nArgs}\n")
+  def writeCall(self,lbl:string, nArgs:int,comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"call {lbl} {nArgs}{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"{self.tab}call {lbl} {nArgs}\n")
 
-  def writeLabel(self,lbl:string):
-    self.outFile.write(f"label {lbl}\n")
+  def writeLabel(self,lbl:string,comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"label {lbl}{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"label {lbl}\n")
   
-  def writeArithmetic(self,op):
+  def writeArithmetic(self,op,comment=None):
     operations = {
       '+': 'add',
       '-': 'sub',
@@ -170,25 +196,44 @@ class VmWriter:
       '|': 'or',
       '<': 'lt',
       '>': 'gt',
-      '=': 'eq'
+      '=': 'eq',
+      '~': 'not',
+      'neg':'neg'
     }
-    self.outFile.write(f"{operations[op]}\n")
-  
-  def writeReturn(self):
-    self.outFile.write(f"return\n")
+    if comment and self.logLevel>0:
+      self.outFile.write(f"{operations[op]}{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"{self.tab}{operations[op]}\n")
     pass
 
-  def writePush(self, segment:string, index:int):
-    self.outFile.write(f"push {segment} {index}\n")
+
+  def writeReturn(self,comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"return{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"{self.tab}return\n")
+    pass
+
+  def writePush(self, segment:string, index:int, comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"push {segment} {index}{self.tab}// {comment}\n")
+    else:  
+      self.outFile.write(f"{self.tab}push {segment} {index}\n")
     pass
   
-  def writePop(self, segment:string, index:int):
-    self.outFile.write(f"pop {segment} {index}\n")
+  def writePop(self, segment:string, index:int, comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"pop {segment} {index}{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"{self.tab}pop {segment} {index}\n")
     pass
     
-  def writeFunction(self,name:string, nArgs:int):
-    self.outFile.write(f"function {name} {nArgs}\n")
-
+  def writeFunction(self,name:string, nArgs:int,comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"function {name} {nArgs}{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"function {name} {nArgs}\n")
+    
 
 
 
@@ -198,14 +243,17 @@ class CompilationEngine:
   def __init__(self,tknzr:JackTokenizer, vm:VmWriter):
     self.tknzr = tknzr
     self.vm = vm
-    self.statements = {
-      'let': self.compileLet,
-      'do' : self.compileDo,
-      'if' : self.compileIf,
-      'while': self.compileWhile,
-      'return': self.compileReturn
-    }
+    
+    self.lbls = {}
+    pass
 
+  def getLabel(self,prefix:string):
+    if prefix in self.lbls.keys():
+      self.lbls[prefix]+=1
+    else:
+      self.lbls[prefix] = 0
+    return f"{self.className}_{prefix}_{self.lbls[prefix]}"
+    
   def eat(self,ids):
     while self.tknzr.tokenType() == 'comment':
       self.vm.writeComment(self.tknzr.token.val)
@@ -235,7 +283,7 @@ class CompilationEngine:
     tkn =  self.eat('class')
     if tkn.tokenType=='identifier':
       className = tkn.val
-      #SymbolTable.add('class',className,'class')
+      self.className = className
       self.nextToken()
     else:
       raise Exception(tkn)
@@ -245,11 +293,9 @@ class CompilationEngine:
     while self.tknzr.tokenVal() in ['static','field']: 
       self.compileClassVarDec()
       
-    while self.tknzr.tokenVal() != '}':
+    while self.tknzr.token and  self.tknzr.tokenVal() != '}':
       tk = self.tknzr.token
-      if tk.val == 'method':
-        SymbolTable.add('this',className,'argument')
-      self.compileSubroutineDec(className)
+      self.compileSubroutine(className)
 
     self.eat('}')
     SymbolTable.endScope()
@@ -275,11 +321,14 @@ class CompilationEngine:
 
   # subroutineDec: ('constructor'|'function'|'method') ('void'|type) subroutineName '(' parameterList ')' subroutineBody
   # type: 'int'|'char'|'boolean'|className
-  def compileSubroutineDec(self, className:string):
+  # subroutineBody: '{' varDec* statements '}'
+  def compileSubroutine(self, className:string):
     SymbolTable.startScope()
 
-    tokenType = self.tknzr.tokenVal()
+    subType = self.tknzr.tokenVal() #subroutine type: constructor, function, or method 
     tkn = self.eat(['constructor','function','method'])
+    if subType == 'method':
+        SymbolTable.add('this',className,'argument') # arg0 is THIS
 
     if tkn.val in ['void','int','char','boolean'] or tkn.tokenType == 'identifier':
       #tkn.tokenType = 'returnType'
@@ -287,23 +336,35 @@ class CompilationEngine:
 
     name = tkn.val
     
-    #s = SymbolTable.getSymbol('class')
-    #s.name= s.type+ "."+tkn.val
-    #s.tokenType = tokenType
-    #ret.add(tkn) # subroutineName
-    
     tkn = self.nextToken()
     self.eat('(')
-
     self.compileParameterList()
-    
-    nArgs = SymbolTable.varCount('argument')+1
-    self.vm.writeFunction(f"{className}.{name}",nArgs)
-      
     self.eat(')')
 
-    self.compileSubroutineBody()
+    self.eat('{')
     
+    nVars=0
+    while self.tknzr.tokenVal() == 'var':
+      nVars += self.compileVarDec()
+    
+    self.vm.writeFunction(f"{className}.{name}",nVars)
+    if subType=='method':
+      #first paramter is THIS
+      self.vm.writePush('argument', 0)
+      self.vm.writePop('pointer', 0)
+
+    #TODO: implement constructor   
+    if subType=='constructor':
+      nArgs = len(list(filter(lambda x: x.kind=='this', SymbolTable.first.next.symbols)))
+      self.vm.writePush('constant',nArgs)
+      self.vm.writeCall('Memory.alloc',1)
+      self.vm.writePop('pointer',0)# setting the pointer to the object 
+
+    self.compileStatements()
+    
+    self.eat('}')
+   
+
     SymbolTable.endScope()
     return
 
@@ -324,32 +385,22 @@ class CompilationEngine:
       
     return
   
-  #subroutineBody: '{' varDec* statements '}'
-  def compileSubroutineBody(self):
-    self.eat('{')
-
-    while self.tknzr.tokenVal() == 'var':
-      self.compileVarDec()
-      
-    self.compileStatements()
-    
-    self.eat('}')
-    return
-
+ 
   # varDec: 'var' type varName (',' varName)* ';'
   def compileVarDec(self):
     tk = self.eat('var')
-
+    ret =0
     varType = tk.val
     tk = self.nextToken()
 
     while tk.val != ';':
       if tk.val != ',':
+        ret+=1
         SymbolTable.add(tk.val,varType,'local')
       tk = self.nextToken()
     
     self.eat(';')
-    return
+    return ret
 
 
 
@@ -362,9 +413,18 @@ class CompilationEngine:
   # statements: statement *
   # statement: letStatement | if Statement | whileStatement | doStatement | returnStatement
   def compileStatements(self):
-    while self.tknzr.tokenVal() in self.statements.keys():
-      self.statements[self.tknzr.tokenVal()]()
-    return
+    statements = {
+      'let': self.compileLet,
+      'do' : self.compileDo,
+      'if' : self.compileIf,
+      'while': self.compileWhile,
+      'return': self.compileReturn
+    }
+    while self.tknzr.tokenVal() in statements.keys():
+      self.vm.writeComment(self.tknzr.getLine(self.tknzr.token))
+      cmd = self.tknzr.tokenVal()
+      statements[cmd]()
+    return cmd
   
 
   # letStatement: 'let' varName ('[' expression ']')? '=' expression ';'
@@ -372,19 +432,32 @@ class CompilationEngine:
     tkn = self.eat('let')
     
     varName = SymbolTable.getSymbol(tkn.val)
-    
+    leftExprArray = False
     tkn = self.nextToken()
     if tkn.val=='[':
+      leftExprArray = True
       self.eat('[')
-      self.compileExpression(']') 
+      self.compileExpression() 
       self.eat(']')
-
-    
+      self.vm.writePush(varName.kind,varName.index)
+      self.vm.writeArithmetic('+')
+      
     self.eat('=')
 
-    self.compileExpression(';')
+    self.compileExpression()
+
     
-    self.eat(';')  
+
+    if leftExprArray:  
+      self.vm.writePop('temp',0) # write the result of the expression into temp
+      #save left side expression
+      self.vm.writePop('pointer',1) # THAT = address of left expression
+      self.vm.writePush('temp', 0)  # stack has right expression value
+      self.vm.writePop('that',0)    # save right expression value at address of left expression 
+    else:
+      self.vm.writePop(varName.kind,varName.index)
+
+    self.eat(';')
     return
 
   # doStatement: 'do' subroutineCall ';'
@@ -393,26 +466,11 @@ class CompilationEngine:
   def compileDo(self):
     tkn = self.eat('do')
 
-    if tkn.tokenType=='identifier':
-      symbol = SymbolTable.getSymbol(tkn.val)  # subroutineName or className or varName
-      name = symbol.name if symbol else tkn.val
-    tk = self.nextToken()
-    if tk.val == '(': #expressionlist
-      self.eat('(')
-      nArgs = self.compileExpressionList(')')
-      self.eat(')')
-    else:
-      tk=self.eat('.')
-      name+='.'+tk.val
-      #ret.add(tk) #subroutineName
-      self.nextToken()
-      self.eat('(')
-      nArgs = self.compileExpressionList(')')
-      self.eat(')')
+    self.compileExpression()
 
     self.eat(';')
-    self.vm.writeCall(name,nArgs)
-    self.vm.writePop('local',0) # we need to extract the return 0 from the do call 
+    
+    self.vm.writePop('temp',0) # we need to extract the return 0 from the do call 
     return
 
   # ifStatement: 'if' '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
@@ -420,41 +478,59 @@ class CompilationEngine:
     self.eat('if')
     self.eat('(')
     
-    self.compileExpression(')')
+    self.compileExpression()
+
+    lbl1 = self.getLabel('if')
+    self.vm.writeArithmetic('~')
+    self.vm.writeIfGoTo(lbl1)
     
     self.eat(')')
     self.eat('{')
-    self.compileStatements()
-    
+    cmd1 = self.compileStatements()
+    if cmd1 !='return':
+      lbl2 = self.getLabel('if')
+      self.vm.writeGoTo(lbl2)
+
     tkn = self.eat('}')
+    
+    self.vm.writeLabel(lbl1)
     if tkn.val == 'else':
       self.eat('else')
+
       self.eat('{')
       self.compileStatements()
       self.eat('}')
-
+    
+    if cmd1!='return':
+      self.vm.writeLabel(lbl2)
     return
   
   # whileStatement: 'while' '(' expression ')' '{' statements '}'
   def compileWhile(self): # parses a while statement
     self.eat('while')
+    lbl1 = self.getLabel('while')
+    self.vm.writeLabel(lbl1)
     self.eat('(')
-
-    self.compileExpression(')')
+    self.compileExpression()
     self.eat(')')
+
+    self.vm.writeArithmetic('~')
+    lbl2 = self.getLabel('while') 
+    self.vm.writeIfGoTo(lbl2)
 
     self.eat('{')
     self.compileStatements()
-
     self.eat('}')
 
+    self.vm.writeGoTo(lbl1)
+    self.vm.writeLabel(lbl2)
     return
   
   # returnStatement: 'return' expression? ';'
   def compileReturn(self):
     tkn = self.eat('return')
     if tkn.val != ';':
-      self.compileExpression(';')
+      self.compileExpression()
     else:
       self.vm.writePush("constant",0) # if no return value we need to add one
     self.eat(';')
@@ -469,24 +545,24 @@ class CompilationEngine:
 
 
   # expressionList: ( expression ( ',' expression )* )?
-  def compileExpressionList(self,end):
+  def compileExpressionList(self):
     ret = 0
     if self.tknzr.tokenVal()==')': # empty expressionList
       return ret
     
     ret+=1
-    self.compileExpression([',',end])
+    self.compileExpression()
     
     while self.tknzr.tokenVal()==',':
       ret+=1
       self.eat(',')
-      self.compileExpression([',',end])
+      self.compileExpression()
     
     return ret
   
   # expression: term (op term)*
   # op: '+'|'-'|'*'|'/'|'&'|'|'|'<'|'>'|'='
-  def compileExpression(self, end):
+  def compileExpression(self):
     self.compileTerm()
     tk = self.tknzr.token
     op = tk.val
@@ -494,7 +570,6 @@ class CompilationEngine:
       tk = self.nextToken()
       self.compileTerm()
       self.vm.writeArithmetic(op)
-      
     return
 
   # term: integerConstant | stringConstant | keywordConstant | varName |
@@ -504,49 +579,111 @@ class CompilationEngine:
   #
   # unaryOp:  '-' | '~'
   def compileTerm(self): # parses a term
-    if self.tknzr.tokenVal() =='(':   #'(' expression ')'
+    tk = self.tknzr.token
+
+    if tk.tokenType == 'integerConstant': 
+      self.vm.writePush('constant',int(tk.val))
+      self.nextToken()
+      return
+
+    if tk.tokenType == 'stringConstant':
+      self.vm.writePush('constant',len(tk.val))
+      self.vm.writeCall('String.new', 1)
+      for c in tk.val:
+        self.vm.writePush('constant', ord(c),c)
+        self.vm.writeCall('String.appendChar',2)
+      self.nextToken()
+      return  
+
+
+    if (tk.tokenType=='keyword' and tk.val in ['this','true','false','null']):
+      operator = {
+        'this':'this',
+        'true':1,
+        'false':0,
+        'null':0
+      }[tk.val]
+      if operator == 'this':
+        self.vm.writePush('pointer',0)
+      else:
+        self.vm.writePush('constant',operator)
+        if tk.val=='true':
+          self.vm.writeArithmetic('neg')
+      tk = self.nextToken()
+      return
+
+    
+    if tk.val in ['-','~']: #unary op
+      op = {'-':'neg','~':'~'}[tk.val]
+      term = self.nextToken()
+      #if term.tokenType=='integerConstant':
+      #  self.vm.writePush('constant',int(op+term.val))
+      #  self.nextToken()
+      #else:
+      #  self.compileTerm()
+      self.compileTerm()
+      self.vm.writeArithmetic(op)
+      return
+
+    # varName |  varName '[' expression ']' 
+    if tk.tokenType == 'identifier': 
+      symbol = SymbolTable.getSymbol(tk.val)
+      
+      if symbol: #we have varName found
+        tk = self.nextToken()
+        if tk.val=='[':         # varName '[' expression ']'
+          self.eat('[')
+          self.compileExpression()
+          self.eat(']')
+          self.vm.writePush(symbol.kind,symbol.index)
+          self.vm.writeArithmetic('+')
+          
+          self.vm.writePop('pointer', 1) 
+          self.vm.writePush('that', 0)
+        elif tk.val=='.': # varName '.' subroutineName '(' expressionList ')'
+          tk= self.eat('.')
+          subrutine = symbol.type+'.'+tk.val
+          self.nextToken()
+          self.vm.writePush(symbol.kind,symbol.index) #pushing the variable as THIS
+          self.eat('(')
+          nArgs = self.compileExpressionList()
+          tk = self.eat(')')
+          self.vm.writeCall(subrutine,nArgs+1)
+          return
+          
+        else:
+          self.vm.writePush(symbol.kind,symbol.index)
+
+        return
+      else: # no symbol so handle subroutineCall
+
+        # subroutineCall: subroutineName '(' expressionList ')' | (className | varName) '.' subroutineName '(' expressionList ')'
+        subrutine = tk.val
+        tk = self.nextToken()
+        if tk.val == '.':       # (className | varName) '.' subroutineName '(' expressionList ')'
+          tk = self.eat('.')
+          subrutine+='.'+tk.val
+          self.nextToken()
+          self.eat('(')
+          nArgs = self.compileExpressionList()
+          tk = self.eat(')')
+          self.vm.writeCall(subrutine,nArgs)
+          return
+        else:  # subroutineName '(' expressionList ')'
+          self.vm.writePush('pointer',0) # first parameter is the pointer to THIS
+          self.eat('(')
+          nArgs = self.compileExpressionList()
+          self.eat(')')
+          self.vm.writeCall(self.className+'.'+subrutine,nArgs+1)
+          return
+   
+    tk = self.tknzr.token
+    if tk.val =='(':   # '(' expression ')'
       self.eat('(')
-      self.compileExpression(')')
+      self.compileExpression()
       self.eat(')')
       return
-   
-    if self.tknzr.tokenVal() in ['-','~']:
-      self.nextToken()
-      self.compileTerm()
-      return
 
-    if (self.tknzr.tokenType() in ['stringConstant', 'integerConstant', 'identifier']) \
-       or (self.tknzr.tokenType()=='keyword' and self.tknzr.tokenVal() in ['this','true','false','null']):
-      
-      tk = self.tknzr.token
-      if tk.tokenType=='identifier':
-        symbol = SymbolTable.getSymbol(tk.val)
-      else:
-        self.vm.writePush('constant',tk.val)
-
-
-      tk = self.nextToken()
-      if tk.val=='[':         # varName '[' expression ']'
-        self.eat('[')
-        self.compileExpression(']')
-        self.eat(']')
-        return
-      
-      if tk.val=='(':         # subroutineName '(' expressionList ')'
-        self.eat('(')
-        self.compileExpressionList(')')
-        self.eat(')')
-        return
-
-      if tk.val == '.':       # (className | varName) '.' subroutineName '(' expressionList ')'
-        tk = self.eat('.')
-        #ret.add(tk)  # subroutineName
-        
-        self.nextToken()
-        self.eat('(')
-        tk = self.compileExpressionList(')')
-        self.eat(')')
-        return
 
     return
   
@@ -563,12 +700,12 @@ class JackAnalyzer:
 
   #Version 0: Designed to test the JackTokenizer
   def extractTokens(self):
-    self.ce.nextToken(); # gets the first token
+    #self.ce.nextToken(); # gets the first token
     while self.tknzr.hasMoreTokens():
-      token = self.tknzr.getToken()
+      token = self.tknzr.advance()
       if token is not None:
         print(token.toXml())
-        self.nextToken()
+        
 
 
   def execute(self):
@@ -675,7 +812,24 @@ if __name__ == '__main__':
   srcFolder = 'lab10/ExpressionLessSquare'
   srcFolder = 'lab10/Square'
   srcFolder = 'lab11/Seven'
+  #srcFolder = 'lab11/ConvertToBin'
+  #srcFolder = 'lab11/Average'
+  #srcFolder = 'lab11/ComplexArrays'
+  srcFolder = 'lab11/Pong'
+  #srcFolder = 'lab11/Square'
   
+  
+
+  
+
+  if srcFolder.endswith('.jack'):
+    srcFile = srcFolder
+    print(f"\n Processing file: {srcFile}\n")
+    #tknzr = JackTokenizer(srcFile)
+    with open(srcFile[:-4]+'vm',mode='w') as vmFile:
+      anlzr = JackAnalyzer(srcFile,vmFile)
+      tokens =  anlzr.execute()
+
   for srcFile in getJackFiles(srcFolder):
     print(f"\n Processing file: {srcFile}\n")
     #tknzr = JackTokenizer(srcFile)
