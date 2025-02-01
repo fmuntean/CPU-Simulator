@@ -1,5 +1,142 @@
 import string
 
+'''
+ we only push as far as the D register as this needs to be followed by a pop short
+'''
+def cmd_push_short(section:string,arg2:int,source:string):
+  
+  if section=='static':
+    ret = f"""
+      @static.{source}.{arg2}
+      D=M   //read from static memory to D
+    """
+    return ret.splitlines()
+  
+  if section==None: # this is a constant number stored into arg2
+    if arg2 in (-1,0,1): #for these special numbers we have a single command
+      return f"D={arg2}"
+    
+    ret=f"""
+      @{arg2}
+      D=A  //load the source value into D
+    """
+    return ret.splitlines()
+          
+  ret=[]
+  if section==5 or section==3: #this is the temp and pointer
+    if section==3 and arg2>1:
+      ret.append("#ERR: invalid index for pointer section only [0;1] allowed")  
+    if section==5 and arg2>7:
+      ret.append("#ERR: invalid index for temp section only [0;7] allowed")
+    
+    ret.append(f"@{section+arg2}")
+    ret.append("D=M")
+  else: 
+    if arg2>1:
+      ret.append(f"@{arg2}")
+      ret.append("D=A")
+    ret.append(f"@{section}")
+    if arg2>1:
+      ret.append("A=D+M")
+    if arg2==1:
+      ret.append("A=M+1")
+    if arg2==0:
+      ret.append("A=M")
+    ret.append("D=M")
+
+  # D has the value to store
+  return ret
+
+
+"""
+  we take the value from D register and we store where needed
+"""
+def cmd_pop_short(section:string,arg2:int,source:string):
+  
+  if section=='static':
+    ret = f"""
+      @static.{source}.{arg2}
+      M=D
+    """
+    return ret.splitlines()
+  
+  if section==5 or section==3: #this is the temp  
+    ret = f"""
+    @{section+arg2}
+    M=D
+    """
+    return ret.splitlines()
+    
+  
+  #Optimize for zero index
+  if arg2==0:
+    ret=f"""
+      @{section}
+      A=M
+      M=D
+    """
+    return ret.splitlines()
+
+  ret = []
+  #save D into @R14
+  ret.append("@R14")
+  ret.append("M=D")
+  
+  #if index is higher we need to add arg and section
+  if arg2>1:
+    ret.append(f"@{arg2}")
+    ret.append("D=A")
+
+  ret.append(f"@{section}")
+  if arg2==1:
+    ret.append("A=M+1")
+  if arg2>1:  
+    ret.append("A=D+M")
+  
+  ret.append("D=A")
+  # save the address to save value into R13
+  ret.append("@R13")
+  ret.append("M=D")
+  
+  #retrieve value into D from @R14
+  ret.append("@R14")
+  ret.append("D=M") 
+
+  #store D into memory pointed by R13
+  ret.append("@R13")
+  ret.append("A=M")
+  ret.append("M=D")
+  
+  return ret
+
+"""
+ just increment the current value in stack
+"""
+def cmd_inc():
+    ret = """
+      @SP
+      A=M-1
+      M=M+1 //load value from stack and increment 
+    """
+    return ret.splitlines()
+
+
+"""
+ just decrement the current value in stack
+"""
+def cmd_dec():
+    ret = """
+      @SP
+      A=M-1
+      M=M-1 //load value from stack and decrement directly in mem 
+    """
+    return ret.splitlines()
+
+
+##########################################################################################
+#    Standard hack commands
+##########################################################################################
+
 def cmd_push(section:string,arg2:int,source:string):
   
   if section=='static':

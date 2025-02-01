@@ -96,6 +96,11 @@ class CodeWriter:
         ret = cmd_push(section,arg2,self.source)
       elif cmd == 'pop':
         ret = cmd_pop(section,arg2,self.source)
+      elif cmd == 'push-short':
+        ret = cmd_push_short(section,arg2,self.source)
+      elif cmd == 'pop-short':
+        ret = cmd_pop_short(section,arg2,self.source)
+        
 
       elif cmd == 'add':
         ret = cmd_add()
