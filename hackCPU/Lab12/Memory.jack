@@ -8,26 +8,92 @@
  * consists of 32,768 words, each holding a 16-bit binary number.
  */ 
 class Memory {
+    static Array ram; 
+    static Array heap;
+    static int freeList; //top of heap free blocks list
 
     /** Initializes the class. */
     function void init() {
+        let ram      = 0;
+        let heap     = 2048; //start of the heap
+        let freeList = 2048; //first free memory block
+        let heap[0]  = 0; //next points to NULL
+        let heap[1]  = 14336; //length of the heap 16384-2048
+        return;
     }
+
+    //TODO: add peek and poke vm commands to optimize this further
 
     /** Returns the RAM value at the given address. */
     function int peek(int address) {
+        return ram[address]; //this results in adding 0+address
     }
 
     /** Sets the RAM value at the given address to the given value. */
     function void poke(int address, int value) {
+        let ram[address]=value; //this results in adding 0 + address
+        return;
     }
 
     /** Finds an available RAM block of the given size and returns
      *  a reference to its base address. */
     function int alloc(int size) {
+        var Array block,addr,parentBlock;
+        var int allocSize;
+
+        let block = freeList;
+        let allocSize = size+2;
+        let parentBlock = 0;
+        while (block > 0){
+            if (block[1] >= allocSize){
+                //we found a block big enough
+                let addr = block+block[1]-allocSize;
+                if (addr = block){
+                    //remove the block from free list
+                    if (parentBlock = 0){
+                        //removing first block
+                        let freeList = block[0];
+                    }else{
+                        let parentBlock[0]=block[0];
+                    }
+                    return addr+2;
+                }else{
+                    //reduce the block size
+                    let block[1] = block[1]-allocSize;
+                    let addr[1]=size;
+                    return addr+2;
+                }
+                
+            }
+            let parentBlock = block;
+            let block = block[0]; //check next block
+
+        }
+        return -1; //error can't allocate
     }
 
     /** De-allocates the given object (cast as an array) by making
      *  it available for future allocations. */
     function void deAlloc(Array o) {
+        var Array block,b;
+
+        let block = o-2; //address of the relased blocked
+        let b = freeList;
+        while( b > 0){
+            if (b+b[1]=block){
+                //append the block to the existing one
+                let b[1]= b[1]+block[1]+2;
+                return;
+            }
+            if (b[0]=0){
+                //append block to the free list
+                let b[0]=block;
+                let block[0]=0;
+                return;
+            }
+
+            let b=b[0]; //move to next free block
+        }
+        return;
     }    
 }

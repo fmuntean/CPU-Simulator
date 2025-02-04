@@ -9,34 +9,236 @@
  * the screen is indexed (0,0).
  */
 class Screen {
+    static boolean color;
+    static int powersOfTwo;
 
     /** Initializes the Screen. */
     function void init() {
+        let color=true;
+        //let powersOfTwo = Math.getPowersTable();
+        return;
     }
 
     /** Erases the entire screen. */
     function void clearScreen() {
+        var Array scr;
+
+        let scr = 16384;
+        while (scr<25300){
+            let scr[0] = 0;
+            let scr=scr+1;
+        }
+
     }
 
     /** Sets the current color, to be used for all subsequent drawXXX commands.
      *  Black is represented by true, white by false. */
     function void setColor(boolean b) {
+        let color = b;
+        return;
     }
 
     /** Draws the (x,y) pixel, using the current color. */
     function void drawPixel(int x, int y) {
+        var int addr,val;
+        
+        let addr = 16384+(32*y)+(x/16);
+        let val = 1;
+        let x = x & 15;
+        while(x>0){
+            let val = val + val;
+            let x=x-1;
+        }
+        if (color=true){
+            let val = val | Memory.peek(addr);
+        } else {
+            let val = val & (~ Memory.peek(addr));
+        }
+        do Memory.poke(addr,val);
+        return;
+    }
+
+
+    //draw horizontal line between x1 and x2
+    function void drawLineH(int x1,int x2,int y){
+        var int addr1,addr2,a,val,i;
+
+        if (x1=x2){
+            do Screen.drawPixel(x1,y);
+            return;
+        }
+
+        if (x1>x2){
+            let i=x1; let x1=x2; let x2=i; //swap x coordinates 
+        }
+
+        let val = 16384 + (32*y);
+        let addr1 = val+(x1/16);
+        let addr2 = val+(x2/16);
+        
+        //extract the ends for x1 and x2
+        let x1=x1 & 15; // reminder for divide by 16 (pixels on the first address)
+        let x2=x2 & 15; // reminder for divide by 16 (pixels on the last address)
+        
+
+        //let val=0;
+        //if the line fits in one address
+        if (addr1=addr2){
+            let i=0; let val=1;
+                
+            while(i<x2){
+                if (i<x1)
+                    {let val = val + val;}
+                else 
+                    {let val = val | (val + val);}
+                let i=i+1;
+            }
+            if (color){
+               let val = val | Memory.peek(addr1);
+            } else {
+                let val = (~val) & Memory.peek(addr1);
+            }
+            do Memory.poke(addr1,val);
+            return;
+        }
+        
+        //handle start of the line
+        let a = addr1;
+        if (x1>0){
+            let i=0; let val=1; 
+            while(i<15){
+                if (i<x1){let val = val + val;} //skip the lower pixels
+                else { let val = val | (val + val);} //all the pixels higer needs to be set
+                let i = i+1;
+            }
+            if (color){
+                let val = val | Memory.peek(a);
+            } else {
+                let val = (~val) & Memory.peek(a);
+            }
+            do Memory.poke(a,val);
+            let a=a+1;
+        }
+
+        //handle middle of the line
+        while(a<addr2){
+            do Memory.poke(a,color);
+            let a = a+1;
+        }
+
+        //handle the end of the line
+        if (x2>0){
+            let i=0; let val=1;
+            while(i<x2){
+                let val = val | (val + val); //all the lower pixels need to be set
+                let i = i+1;
+            }
+            if (color){
+                let val = val | Memory.peek(a);
+            } else {
+                let val = (~val) & Memory.peek(a);
+            }
+            do Memory.poke(a,val);
+        }
+        return;
+    }
+
+    //this function considers that y1 < y2
+    function void drawLineV(int x, int y1, int y2){
+        var int addr1,addr2,val;
+        
+        let addr1 = 16384+(32*y1)+(x/16);
+        let addr2 = 16384+(32*y2)+(x/16);
+        let val = 1;
+        let x = x & 15;
+        while(x>0){
+            let val = val + val;
+            let x=x-1;
+        }
+        while (addr1<=addr2){
+            if (color){
+                let val = val | Memory.peek(addr1);
+            } else {
+                let val = val & (~Memory.peek(addr1));
+            }
+            do Memory.poke(addr1,val);   
+            let addr1 = addr1 + 32;
+        }
+         
+        return; 
     }
 
     /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
     function void drawLine(int x1, int y1, int x2, int y2) {
+        var int a,b,dx,dy,diff;
+        
+        
+        //swap pixels to always go in positive direction on y axis
+        if ( (y1>y2) ){
+            let a = x1; let x1=x2; let x2=a;
+            let b = y1; let y1=y2; let y2=b;
+        }
+
+        //draw horizontal line
+        if (y1=y2){ do Screen.drawLineH(x1,x2,y1);return;}
+
+        //draw vertical line
+        if (x1=x2){ do Screen.drawLineV(x1,y1,y2);return;}
+
+        
+        //draw diagonal
+        let dx = x2-x1;
+        let dy = y2-y1;
+        let a=0; let b=0; let diff = 0;
+        if (dx>0){
+            while( (a<=dx) & (b<=dy) ){
+                do Screen.drawPixel(x1+a,y1+b);
+                if (diff<0){
+                    let a=a+1; let diff=diff+dy;
+                } else {
+                    let b=b+1; let diff=diff-dx;
+                }
+            }
+        }else {
+             let dx=-dx;
+             while( (a<=dx) & (b<=dy) ){
+                do Screen.drawPixel(x1-a,y1+b);
+                if (diff<0){
+                    let a=a+1; let diff=diff+dy;
+                } else {
+                    let b=b+1; let diff=diff-dx;
+                }
+            }
+        }
+        return;
     }
 
     /** Draws a filled rectangle whose top left corner is (x1, y1)
      *  and bottom right corner is (x2,y2), using the current color. */
     function void drawRectangle(int x1, int y1, int x2, int y2) {
+        while(y1<y2){
+            do Screen.drawLineH(x1,x2,y1);
+            let y1=y1+1;
+        }
+        return;
     }
 
     /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
     function void drawCircle(int x, int y, int r) {
+        var int sx,dy,rs,x1,x2,y1,y2;
+        
+        do Screen.drawLineH(x-r,x+r,y); //horizontal diameter
+        let rs=r*r;
+        let dy = r;
+        let sx=1;
+        while (dy>0){
+            let x1=x-sx; let x2=x+sx;
+            let y1=y-dy; let y2=y+dy;
+            do Screen.drawLineH(x1,x2, y1 );
+            do Screen.drawLineH(x1,x2, y2 );
+            let dy=dy-1;
+            let sx = Math.sqrt(rs-(dy*dy));
+        }
+        return;
     }
 }

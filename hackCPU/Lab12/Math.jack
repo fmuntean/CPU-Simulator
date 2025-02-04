@@ -15,6 +15,33 @@ class Math {
 
     // Initializes the Math library.
     function void init() {
+        let powersOfTwo = Array.new(16);
+        let powersOfTwo[0]=1;
+        let powersOfTwo[1]=2;
+        let powersOfTwo[2]=4;
+        let powersOfTwo[3]=8;
+        let powersOfTwo[4]=16;
+        let powersOfTwo[5]=32;
+        let powersOfTwo[6]=64;
+        let powersOfTwo[7]=128;
+        let powersOfTwo[8]=256;
+        let powersOfTwo[9]=512;
+        let powersOfTwo[10]=1024;
+        let powersOfTwo[11]=2048;
+        let powersOfTwo[12]=4096;
+        let powersOfTwo[13]=8192;
+        let powersOfTwo[14]=16384;
+        let powersOfTwo[15]=-32767-1;
+        return;
+    }
+
+    function int getPowersTable(){
+        return powersOfTwo;
+    }
+
+    // Returns true if the i-th bit of x is 1, false otherwise 
+    function boolean bit(int x,int i){
+        if (powersOfTwo[i] & x = 0){return false;}else{return true;}
     }
 
     /** Returns the product of x and y. 
@@ -22,6 +49,27 @@ class Math {
      *  in an expression, it handles it by invoking this method. 
      *  Thus, in Jack, x * y and Math.multiply(x,y) return the same value. */
     function int multiply(int x, int y) {
+        var int sum,xShifted,i;
+        
+        let sum=0;
+        let xShifted = x;
+        let i=0;
+
+        if (x=0 | y=0){
+            return 0;
+        }
+
+        if (x=1){return y;}
+        if (y=1){return x;}
+
+        while( i<15 ){
+            if (Math.bit(y,i)=true){
+                let sum=sum+xShifted;
+            }
+            let xShifted = xShifted+xShifted;
+            let i=i+1;
+        }
+        return sum;
     }
 
     /** Returns the integer part of x / y.
@@ -29,21 +77,67 @@ class Math {
      *  an an expression, it handles it by invoking this method.
      *  Thus, x/y and Math.divide(x,y) return the same value. */
     function int divide(int x, int y) {
+        var int a,b,c;
+        
+        let a = Math.abs(x);
+        let b = Math.abs(y);
+        let c = Math._divide(a,b);
+        if ( x < 0 ){let c= -c;}
+        if ( y<0 ) {let  c= -c;}
+        return c;
+    }
+
+    //this function only handles positive numbers
+    /*
+        if (y > x) or (y < 0) return 0
+        q = divide (x, 2 * y)
+        if ((x – 2 * q * y) < y)
+        return 2 * q
+        else
+        return 2 * q + 1 
+    */
+    function int _divide(int x,int y){
+        var int q,qq;
+        
+        if ( (x<0) | (y<0) ){return 0;}
+        let q = Math._divide(x,y+y);
+        let qq = q+q;
+        if ( (x-(qq*y))<y){
+            return qq;
+        }else{
+            return qq+1;
+        }
     }
 
     /** Returns the integer part of the square root of x. */
+    //finds and integer y such that y^2 < (y+1)^2
+    //by performing a binary search
     function int sqrt(int x) {
+        var int y,j,a,p;
+        
+        let y=0;
+        let j=7; // 16bits/2-1
+        while(j>=0){
+            let a = y+powersOfTwo[j];  // y+2^j
+            let p = a*a; // (y+2^j)^2
+            if ( (p <= x) & (p>0) ){ let y=a;} 
+            let j=j-1;
+        }
+        return y;
     }
 
     /** Returns the greater value. */
     function int max(int a, int b) {
+        if (a<b){return b;}else{return a;}
     }
 
     /** Returns the smaller value. */
     function int min(int a, int b) {
+        if (a<b){return a;}else{return b;}
     }
 
     /** Returns the absolute value of x. */
     function int abs(int x) {
+        if (x<0){return -x;}else{return x;}
     }
 }
