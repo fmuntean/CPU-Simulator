@@ -2,6 +2,7 @@
 
 from csv import Error
 import os
+from re import A
 import string
 from symtable import SymbolTable
 from xml.sax.saxutils import escape
@@ -108,6 +109,8 @@ class JackTokenizer:
       
       self.token.val=self.lines[self.index]
       self.index+=1
+
+      # handling comments
       if self.token.val =='/' and self.lines[self.index]=='/': # we have a comment
         self.token.val = ''
         self.token.tokenType = 'comment'
@@ -126,7 +129,14 @@ class JackTokenizer:
           self.index+=1
         self.index+=2
         return self.token
-       
+      
+      # handling <= and >= symbols
+      if self.token.val in ['<','>'] and self.lines[self.index]=='=':
+        self.token.val+='='
+        self.index+=1
+        self.token.tokenType='symbol'
+        return self.token
+
     #identify the token type
     if (self.token.val in symbols):
       self.token.tokenType = 'symbol'
@@ -151,10 +161,11 @@ class JackTokenizer:
 class VmWriter:
   
 
-  def __init__(self, outFile,logLevel=0):
+  def __init__(self, outFile,logLevel=0, newOps=False):
     self.outFile = outFile
     self.logLevel=logLevel
     self.tab='    '
+    self.newOperations = newOps; # specify if the VM implementation supports new operations 
     pass
 
   def writeComment(self,comment:string):
@@ -200,10 +211,29 @@ class VmWriter:
       '~': 'not',
       'neg':'neg'
     }
-    if comment and self.logLevel>0:
-      self.outFile.write(f"{operations[op]}{self.tab}// {comment}\n")
+
+    newOperations = {
+      '<=':'le',
+      '>=':'ge'
+    }
+    
+    if self.newOperations:
+      operations +=newOperations
     else:
-      self.outFile.write(f"{self.tab}{operations[op]}\n")
+      #we need to handle the le and ge differently
+      if op == '<=':
+        self.outFile.write(f"{self.tab}gt\n{self.tab}not\n")
+      if op == '>=':
+        self.outFile.write(f"{self.tab}lt\n{self.tab}not\n")      
+      
+
+
+    if op in operations.keys():
+      if comment and self.logLevel>0:
+        self.outFile.write(f"{operations[op]}{self.tab}// {comment}\n")
+      else:
+        self.outFile.write(f"{self.tab}{operations[op]}\n")
+    
     pass
 
 
@@ -252,7 +282,7 @@ class CompilationEngine:
       self.lbls[prefix]+=1
     else:
       self.lbls[prefix] = 0
-    return f"{self.className}_{prefix}_{self.lbls[prefix]}"
+    return f"{self.className}_{self.subrutineName}_{prefix}_{self.lbls[prefix]}"
     
   def eat(self,ids):
     while self.tknzr.tokenType() == 'comment':
@@ -334,7 +364,7 @@ class CompilationEngine:
       #tkn.tokenType = 'returnType'
       tkn=self.nextToken() #subroutineName
 
-    name = tkn.val
+    name = tkn.val  # subroutineName
     
     tkn = self.nextToken()
     self.eat('(')
@@ -348,6 +378,7 @@ class CompilationEngine:
       nVars += self.compileVarDec()
     
     self.vm.writeFunction(f"{className}.{name}",nVars)
+    self.subrutineName=name
     if subType=='method':
       #first paramter is THIS
       self.vm.writePush('argument', 0)
@@ -420,11 +451,12 @@ class CompilationEngine:
       'while': self.compileWhile,
       'return': self.compileReturn
     }
+    cmd = self.tknzr.tokenVal()
     while self.tknzr.tokenVal() in statements.keys():
       self.vm.writeComment(self.tknzr.getLine(self.tknzr.token))
       cmd = self.tknzr.tokenVal()
       statements[cmd]()
-    return cmd
+    return cmd 
   
 
   # letStatement: 'let' varName ('[' expression ']')? '=' expression ';'
@@ -566,10 +598,11 @@ class CompilationEngine:
     self.compileTerm()
     tk = self.tknzr.token
     op = tk.val
-    while tk.val in ['+','-','*','/','&','|','<','>','=']:  # op term
-      tk = self.nextToken()
-      self.compileTerm()
+    while op in ['+','-','*','/','&','|','<','>','=','<=','>=']:  # op term
+      self.nextToken()
+      tk = self.compileTerm()
       self.vm.writeArithmetic(op)
+      op=tk.val
     return
 
   # term: integerConstant | stringConstant | keywordConstant | varName |
@@ -583,8 +616,7 @@ class CompilationEngine:
 
     if tk.tokenType == 'integerConstant': 
       self.vm.writePush('constant',int(tk.val))
-      self.nextToken()
-      return
+      return self.nextToken()
 
     if tk.tokenType == 'stringConstant':
       self.vm.writePush('constant',len(tk.val))
@@ -592,8 +624,8 @@ class CompilationEngine:
       for c in tk.val:
         self.vm.writePush('constant', ord(c),c)
         self.vm.writeCall('String.appendChar',2)
-      self.nextToken()
-      return  
+      
+      return self.nextToken()  
 
 
     if (tk.tokenType=='keyword' and tk.val in ['this','true','false','null']):
@@ -609,8 +641,7 @@ class CompilationEngine:
         self.vm.writePush('constant',operator)
         if tk.val=='true':
           self.vm.writeArithmetic('neg')
-      tk = self.nextToken()
-      return
+      return self.nextToken()
 
     
     if tk.val in ['-','~']: #unary op
@@ -621,9 +652,9 @@ class CompilationEngine:
       #  self.nextToken()
       #else:
       #  self.compileTerm()
-      self.compileTerm()
+      tk = self.compileTerm()
       self.vm.writeArithmetic(op)
-      return
+      return tk 
 
     # varName |  varName '[' expression ']' 
     if tk.tokenType == 'identifier': 
@@ -649,12 +680,12 @@ class CompilationEngine:
           nArgs = self.compileExpressionList()
           tk = self.eat(')')
           self.vm.writeCall(subrutine,nArgs+1)
-          return
+          return tk
           
         else:
           self.vm.writePush(symbol.kind,symbol.index)
 
-        return
+        return self.tknzr.token
       else: # no symbol so handle subroutineCall
 
         # subroutineCall: subroutineName '(' expressionList ')' | (className | varName) '.' subroutineName '(' expressionList ')'
@@ -663,29 +694,30 @@ class CompilationEngine:
         if tk.val == '.':       # (className | varName) '.' subroutineName '(' expressionList ')'
           tk = self.eat('.')
           subrutine+='.'+tk.val
-          self.nextToken()
+          tk = self.nextToken()
+
           self.eat('(')
           nArgs = self.compileExpressionList()
           tk = self.eat(')')
           self.vm.writeCall(subrutine,nArgs)
-          return
+          return tk
         else:  # subroutineName '(' expressionList ')'
           self.vm.writePush('pointer',0) # first parameter is the pointer to THIS
           self.eat('(')
           nArgs = self.compileExpressionList()
-          self.eat(')')
+          tk = self.eat(')')
           self.vm.writeCall(self.className+'.'+subrutine,nArgs+1)
-          return
+          return tk 
    
     tk = self.tknzr.token
     if tk.val =='(':   # '(' expression ')'
       self.eat('(')
       self.compileExpression()
-      self.eat(')')
-      return
+      tk = self.eat(')')
+      return tk
 
 
-    return
+    return self.tknzr.token
   
 
 
@@ -817,10 +849,17 @@ if __name__ == '__main__':
   #srcFolder = 'lab11/ComplexArrays'
   srcFolder = 'lab11/Pong'
   #srcFolder = 'lab11/Square'
-  
+  srcFolder = 'lab12/ArrayTest'
+  srcFolder = 'lab12/KeyboardTest'
+  srcFolder = 'lab12/MathTest'
+  srcFolder = 'lab12/MemoryTest'
+  srcFolder = 'lab12/outputtest'
+  srcFolder = 'lab12/ScreenTest'
+  srcFolder = 'lab12/StringTest'
   
 
-  
+  includeFiles = ['lab12/String.jack','lab12/Output.jack','lab12/Memory.jack','lab12/Sys.jack'] #,'lab12/Screen.jack','lab12/Math.jack'] ,'Lab12/Array.jack','lab12/Keyboard.jack']
+
 
   if srcFolder.endswith('.jack'):
     srcFile = srcFolder
@@ -830,12 +869,17 @@ if __name__ == '__main__':
       anlzr = JackAnalyzer(srcFile,vmFile)
       tokens =  anlzr.execute()
 
-  for srcFile in getJackFiles(srcFolder):
+  for srcFile in getJackFiles(srcFolder) + includeFiles:
     print(f"\n Processing file: {srcFile}\n")
     #tknzr = JackTokenizer(srcFile)
-    with open(srcFile[:-4]+'vm',mode='w') as vmFile:
+    vmFile = srcFolder+'/'+srcFile.split('/')[-1][:-4]+'vm'  if srcFile in includeFiles else srcFile[:-4]+'vm' ;
+    with open(vmFile,mode='w') as vmFile:
       anlzr = JackAnalyzer(srcFile,vmFile)
       tokens = anlzr.execute()
+    
+    
 
+  
+    
     
     

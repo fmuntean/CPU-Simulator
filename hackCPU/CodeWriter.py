@@ -116,6 +116,12 @@ class CodeWriter:
       elif cmd == 'gt':
         self.counter+=1
         ret = cmd_gt(self.counter)
+      elif cmd == 'le':
+        self.counter+=1
+        ret = cmd_le(self.counter)
+      elif cmd == 'ge':
+        self.counter+=1
+        ret = cmd_ge(self.counter)
       
       elif cmd=='and':
         ret = cmd_and()

@@ -133,6 +133,61 @@ def cmd_dec():
     return ret.splitlines()
 
 
+def cmd_le(i:int):
+  #True = -1 False = 0
+  ret = f"""
+    @SP
+    AM=M-1
+    D=M
+    @SP
+    AM=M-1
+
+    D=M-D
+    @lt.skip.{i}
+    D;JLE
+    @lt.end.{i}
+    D=0;JMP
+    (lt.skip.{i})
+    D=-1
+    (lt.end.{i})
+
+    @SP
+    A=M
+    M=D
+    @SP
+    M=M+1
+  """
+  return ret.splitlines()
+
+
+def cmd_ge(i:int):
+  #True = -1 False = 0
+  ret = f"""
+    @SP
+    AM=M-1
+    D=M
+    @SP
+    AM=M-1
+
+    D=M-D
+    @gt.skip.{i}
+    D;JGE
+    @gt.end.{i}
+    D=0;JMP
+    (gt.skip.{i})
+    D=-1
+    (gt.end.{i})
+
+    @SP
+    A=M
+    M=D
+    @SP
+    M=M+1
+  """
+  return ret.splitlines()
+
+
+
 ##########################################################################################
 #    Standard hack commands
 ##########################################################################################
