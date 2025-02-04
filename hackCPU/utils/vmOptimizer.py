@@ -8,11 +8,10 @@ VMOptimizer
 
 
 import os
-import re
 import string
 from sys import argv
 
-from sympy import true
+from utils.utils import getVMFiles
 
 
 
@@ -127,17 +126,6 @@ class VMOptimizer:
       return True
     return False
   
-
-def getVMFiles(folder:string):
-  ret =[]
-   # r=root, d=directories, f = files
-  for r, d, f in os.walk(vmFolder):
-    for file in f:
-      if file.endswith(".vm"):
-          ret.append(os.path.join(r, file))
-  return ret
-
-
 
 if __name__ == '__main__':
   vmFolder = 'lab11\\Pong'

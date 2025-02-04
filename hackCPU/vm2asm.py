@@ -9,73 +9,52 @@ assembly code from it, using the services of the Parser and a CodeWriter.
 
 
 import os
-import re
-import string
 from sys import argv
 
-from CodeWriter import CodeWriter
+from utils.CodeWriter import CodeWriter
+from utils import Parser
+from utils.utils import getVMFiles
+from utils.vmTranslator import VMTranslator
 
 
 
-class Parser:
-  def Parse(self,line):
-    #cmt = line.find("//")
-    #if cmt>0:
-    #  line=line[0..cmt]
-    ret = re.split(' |\t|\n|//', line.strip())
-    while len(ret)<3:
-      ret.append(None)
-    return (ret[:3])
 
 
-class VMTranslator:
-  def __init__(self,parser:Parser,writer:CodeWriter):
-    self.parser = parser
-    self.writer = writer
-    pass
-
-  def Translate(self,f):
-        for line in f:
-          if len(line)==0:
-            continue
-          if line =='\n':
-            continue
-          if line.strip().startswith('//'):
-            self.writer.WriteComment(line)
-            continue
-          
-          self.writer.WriteComment(f"\n//{line}")
-          
-          cmd,arg1,arg2 = self.parser.Parse(line)
-          arg2 = 0 if arg2 in (None,'','//')  else int(arg2)
-          self.writer.Translate(cmd,arg1,arg2)
+def help():
+  print()
+  print("usage: ./vm2asm <pathToFolder> | <filename>")
+  pass
 
 
-def getVMFiles(folder:string):
-  ret =[]
-   # r=root, d=directories, f = files
-  for r, d, f in os.walk(vmFolder):
-    for file in f:
-      if file.endswith(".vm"):
-          ret.append(os.path.join(r, file))
-  return ret
-
+def compileFile(vmFile,asm):
+  writer = CodeWriter(asm)
+  writer.WriteBoostrap()
+  parser = Parser()
+  with open(vmFile,mode="r") as f:
+    _,sourceFile=os.path.split(vmFile)
+    writer.source = sourceFile[:-3]
+    writer.WriteComment(f"\n// Processing file: {vmFile}\n")
+    translator = VMTranslator(parser,writer)
+    translator.Translate(f)
 
 
 if __name__ == '__main__':
-  vmFolder = 'lab08\\FibonacciElement' #argv[1]
-  asmFile = vmFolder.split(os.path.sep)[-1]+".asm"
-    
-  with open(asmFile,mode="w") as asm:
-    writer = CodeWriter(asm)
-    writer.WriteBoostrap()
-    parser = Parser()
-    for vmFile in getVMFiles(vmFolder):
-      with open(vmFile,mode="r") as f:
-        _,sourceFile=os.path.split(vmFile)
-        writer.source = sourceFile[:-3]
-        writer.WriteComment(f"\n// Processing file: {vmFile}\n")
-        translator = VMTranslator(parser,writer)
-        translator.Translate(f)
-
+  #vmFolder = 'lab08\\FibonacciElement' #argv[1]
+  if len(argv)==1:
+    help()
+  else:
+    vmFolder = argv[1]
+    if vmFolder.endswith('.vm'): #we have a file
+      asmFile = vmFolder.replace('.vm',".asm")
+      print(f"Generating asm file: {asmFile}")
+      with open(asmFile,mode="w") as asm:
+        compileFile(vmFolder,asm)
+    else: # we have a folder
+      asmFile = vmFolder+'/'+vmFolder.replace('/','\\').split(os.path.sep)[-1]+".asm"
+      print(f"Generating asm file: {asmFile}")
+      with open(asmFile,mode="w") as asm:  
+        for srcFile in getVMFiles(vmFolder):
+          print(f"Processing File: {srcFile}")
+          compileFile(srcFile,asm)
+    print("Done.")
     

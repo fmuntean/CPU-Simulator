@@ -3,7 +3,7 @@ hack Computer Screen
 
 video memory starts at 16384 and is 8K long
 512x256 pixels
-monocrome (1 pixel per bit)
+monochrome (1 pixel per bit)
 
 each line is 32 bytes from top to bottom
 
@@ -11,7 +11,6 @@ each line is 32 bytes from top to bottom
 """
 
 
-from re import escape
 import threading
 import pygame
 
@@ -21,7 +20,6 @@ screen_height = 256
 
 
 
-import pygame
 import threading
 import sys
 

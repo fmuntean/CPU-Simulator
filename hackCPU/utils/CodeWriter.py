@@ -18,11 +18,16 @@ R13 to R15 are the only available Registers that can be used to store data
 Static variables are kept in RAM between 16 and 255
 Stack is between 256 and 2047
 
+Heap starts at 2048
+
+Screen Memory starts at 16384 and is 8K long
+Keyboard is mapped immediately after at 24576
+
 """
 
 
 import string
-from  vm_commands import *
+from  utils.vm_commands import *
 
 map_section={
   'constant':None,

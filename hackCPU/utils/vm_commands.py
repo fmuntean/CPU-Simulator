@@ -1,4 +1,51 @@
+
+"""
+
+Implementation of the VM commands specific to the Hack CPU opcodes.
+
+"""
+
+
+
+
 import string
+
+
+##########################################################################################
+#    Extra hack commands
+##########################################################################################
+#
+# the current implementation did not use some of the existing opcodes or optimizations 
+# adding few VM commands to help optimize the code or use opcodes like ge and le 
+#
+#
+#
+##########################################################################################
+'''
+Hack CPU does not have a stack register. Transferring to/from stack involves loads of instructions and memory access
+Many times there is a need to just transfer one value from one place to another.
+
+cmd_push_short
+cmd_pop_short
+  allow to transfer faster between registers or variables by pushing to D only instead all the way to the stack
+  these needs to be used next to each other when reassigning values around. like let a=0 or let a=b
+
+cmd_inc
+cmd_dec
+  many times there is a need to add 1 or subtract 1 from a variable.
+  hackCPU has multiple opcodes to deal with this directly like M=M-1 or D=M-1
+  these use optimized opcodes vs pushing 1 and variable to the stack then add them and then move it back to the memory
+
+cmd_ge
+cd_le
+  these opcodes are not utilized in the original VM implementation
+  if statements needed to use complex expression to go around like a<=b resulted in (a<b)|(a=b)
+  using the opcodes directly simplify the expression and optimizes the code.
+  
+
+
+'''
+
 
 '''
  we only push as far as the D register as this needs to be followed by a pop short
@@ -25,9 +72,9 @@ def cmd_push_short(section:string,arg2:int,source:string):
   ret=[]
   if section==5 or section==3: #this is the temp and pointer
     if section==3 and arg2>1:
-      ret.append("#ERR: invalid index for pointer section only [0;1] allowed")  
+      error(ret,"#ERR: invalid index for pointer section only [0;1] allowed")  
     if section==5 and arg2>7:
-      ret.append("#ERR: invalid index for temp section only [0;7] allowed")
+      error(ret,"#ERR: invalid index for temp section only [0;7] allowed")
     
     ret.append(f"@{section+arg2}")
     ret.append("D=M")
@@ -663,3 +710,8 @@ def call_sys_init():
     0;JMP
   """
   return ret.splitlines()
+
+
+def error(list,msg):
+  list.append(msg)
+  raise Exception(msg)
