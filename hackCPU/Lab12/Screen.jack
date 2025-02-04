@@ -28,7 +28,7 @@ class Screen {
             let scr[0] = 0;
             let scr=scr+1;
         }
-
+        return;
     }
 
     /** Sets the current color, to be used for all subsequent drawXXX commands.
