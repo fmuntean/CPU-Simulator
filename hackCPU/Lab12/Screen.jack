@@ -108,7 +108,7 @@ class Screen {
             let i=0; let val=1; 
             while(i<15){
                 if (i<x1){let val = val + val;} //skip the lower pixels
-                else { let val = val | (val + val);} //all the pixels higer needs to be set
+                else { let val = val | (val + val);} //all the pixels higher needs to be set
                 let i = i+1;
             }
             if (color){
