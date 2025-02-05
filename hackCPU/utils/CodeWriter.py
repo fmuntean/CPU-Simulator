@@ -27,7 +27,8 @@ Keyboard is mapped immediately after at 24576
 
 
 import string
-from  utils.vm_commands import *
+
+from utils import vm_commands1,vm_commands2
 
 map_section={
   'constant':None,
@@ -45,10 +46,11 @@ map_section={
 
 
 class CodeWriter:
-  def __init__(self,asm):
-    self.asm = asm
-    self.counter=0
-    self.source=''
+  def __init__(self,asm,version:int):
+    self.asm = asm # the asm file object where we write the opcodes
+    self.counter=0 # a counter for the labels
+    self.source='' #the name of the source vm file
+    self.commands = vm_commands1 if version==1 else vm_commands2
 
   def WriteComment(self,line:string):
     self.asm.writelines(line)
@@ -62,86 +64,76 @@ class CodeWriter:
         continue
       self.asm.writelines(line+'\n')
 
-  def WriteBoostrap(self):
-    #lines = call_sys_init()
-    #self.counter+=1
-    #lines =call_sys_init() 
-    #TODO: investigate as cmd_call might waste 5 bytes in stack instead of call_sys_init
-    init_SP = """
-      @256
-      D=A
-      @SP
-      M=D
-    """.splitlines()
+  def WriteBootstrap(self):
+    init_SP = self.commands.bootstrap()
     self.WriteLines(init_SP)
-    lines= cmd_call("Sys.init",0,self.counter)
+    lines= self.commands.cmd_call("Sys.init",0,self.counter)
     self.WriteLines(lines)
     pass
 
 
   def Translate(self,cmd:string,arg1:string,arg2:int):
-    
     if cmd=='label':
-      ret = cmd_label(arg1)
+      ret = self.commands.cmd_label(arg1)
     elif cmd=='goto':
-      ret = cmd_goto(arg1)
+      ret = self.commands.cmd_goto(arg1)
     elif cmd=='if-goto':
-      ret = cmd_if_goto(arg1)
+      ret = self.commands.cmd_if_goto(arg1)
     elif cmd=='call':
       self.counter+=1
-      ret = cmd_call(arg1,arg2,self.counter)
+      ret = self.commands.cmd_call(arg1,arg2,self.counter)
     elif cmd=='function':
-      ret = cmd_function(arg1,arg2)
+      ret = self.commands.cmd_function(arg1,arg2)
     elif cmd=='return':
-      ret = cmd_return()
+      ret = self.commands.cmd_return()
     else:
 
       section = map_section[arg1]
       if cmd=='push':
-        ret = cmd_push(section,arg2,self.source)
+        ret = self.commands.cmd_push(section,arg2,self.source)
       elif cmd == 'pop':
-        ret = cmd_pop(section,arg2,self.source)
+        ret = self.commands.cmd_pop(section,arg2,self.source)
       elif cmd == 'push-short':
-        ret = cmd_push_short(section,arg2,self.source)
+        ret = self.commands.cmd_store_into_D(section,arg2,self.source)
       elif cmd == 'pop-short':
-        ret = cmd_pop_short(section,arg2,self.source)
+        ret = self.commands.cmd_pop_from_D(section,arg2,self.source)
         
 
       elif cmd == 'add':
-        ret = cmd_add()
+        ret = self.commands.cmd_add()
       elif cmd=='sub':
-        ret = cmd_sub()
+        ret = self.commands.cmd_sub()
       
       elif cmd == 'eq':
         self.counter+=1
-        ret = cmd_eq(self.counter)
+        ret = self.commands.cmd_eq(self.counter)
       elif cmd == 'lt':
         self.counter+=1
-        ret = cmd_lt(self.counter)
+        ret = self.commands.cmd_lt(self.counter)
       elif cmd == 'gt':
         self.counter+=1
-        ret = cmd_gt(self.counter)
+        ret = self.commands.cmd_gt(self.counter)
       elif cmd == 'le':
         self.counter+=1
-        ret = cmd_le(self.counter)
+        ret = self.commands.cmd_le(self.counter)
       elif cmd == 'ge':
         self.counter+=1
-        ret = cmd_ge(self.counter)
+        ret = self.commands.cmd_ge(self.counter)
       
       elif cmd=='and':
-        ret = cmd_and()
+        ret = self.commands.cmd_and()
       elif cmd=='or':
-        ret = cmd_or()
+        ret = self.commands.cmd_or()
       
       elif cmd=='neg':
-        ret = cmd_neg()
+        ret = self.commands.cmd_neg()
       elif cmd=='not':
-        ret = cmd_not()
+        ret = self.commands.cmd_not()
       
       else:
         ret=None
     
     if ret != None:
       self.WriteLines(ret)
-      #self.asm.writelines(["@123","@321"]) #for debugging only
+      
     pass

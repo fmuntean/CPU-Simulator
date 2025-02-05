@@ -38,8 +38,8 @@ class HackAssembler:
         lst.write(f"\n{'-'*80}\n")
         lst.write("\t\t\t VARIABLES\n")
         lst.write(f"{'-'*80}\n")
-        for i in range(len(vars)):
-            lst.write(f"0x{i:04X}\t{vars[i]}\n")
+        for i in range(len(HackAssembler.vars)):
+            lst.write(f"0x{i:04X}\t{HackAssembler.vars[i]}\n")
 
     def listLabels(lst):
         lst.write(f"\n{'-'*80}\n")
@@ -57,12 +57,12 @@ class HackAssembler:
         if line in HackAssembler.labels.keys():
             return HackAssembler.labels[line]
     
-        for i in range(len(vars)):
-            if vars[i]==line:
+        for i in range(len(HackAssembler.vars)):
+            if HackAssembler.vars[i]==line:
                 return i
         #the variable is not found so we add it
-        vars.append(line)
-        return len(vars)-1
+        HackAssembler.vars.append(line)
+        return len(HackAssembler.vars)-1
   
 
     #first pass extracts labels only
