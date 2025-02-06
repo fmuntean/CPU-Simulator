@@ -28,7 +28,7 @@ Keyboard is mapped immediately after at 24576
 
 import string
 
-from utils import vm_commands1,vm_commands2
+from utils import vm_commands1,vm_commands2,vm_commands3
 
 map_section={
   'constant':None,
@@ -46,11 +46,11 @@ map_section={
 
 
 class CodeWriter:
-  def __init__(self,asm,version:int):
+  def __init__(self,asm):
     self.asm = asm # the asm file object where we write the opcodes
     self.counter=0 # a counter for the labels
     self.source='' #the name of the source vm file
-    self.commands = vm_commands1 if version==1 else vm_commands2
+    
 
   def WriteComment(self,line:string):
     self.asm.writelines(line)
@@ -72,6 +72,7 @@ class CodeWriter:
     pass
 
 
+
   def Translate(self,cmd:string,arg1:string,arg2:int):
     if cmd=='label':
       ret = self.commands.cmd_label(arg1)
@@ -79,13 +80,21 @@ class CodeWriter:
       ret = self.commands.cmd_goto(arg1)
     elif cmd=='if-goto':
       ret = self.commands.cmd_if_goto(arg1)
+    elif cmd=='call_global':
+      ret = self.commands.cmd_call_global()
     elif cmd=='call':
       self.counter+=1
       ret = self.commands.cmd_call(arg1,arg2,self.counter)
     elif cmd=='function':
       ret = self.commands.cmd_function(arg1,arg2)
+    elif cmd=='return_global':
+      ret = self.commands.cmd_return_global()
     elif cmd=='return':
       ret = self.commands.cmd_return()
+    
+    elif cmd=='jmp':
+      ret = self.commands.cmd_jmp(arg1)
+    
     else:
 
       section = map_section[arg1]
@@ -129,7 +138,11 @@ class CodeWriter:
         ret = self.commands.cmd_neg()
       elif cmd=='not':
         ret = self.commands.cmd_not()
-      
+
+      elif cmd=='inc':
+        ret = self.commands.cmd_inc(section,arg2)
+      elif cmd=='dec':
+        ret = self.commands.cmd_dec(section,arg2)
       else:
         ret=None
     

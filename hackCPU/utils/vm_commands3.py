@@ -48,6 +48,51 @@ cd_le
 '''
 
 
+def cmd_inc(section:string,arg2:int,source:string):
+  if arg2==0:
+    ret = f"""
+      @{section}
+      M=M+1
+    """
+    return ret.splitlines()
+  if arg2==1:
+    ret = f"""
+      @{section}
+      A=M+1
+      M=M+1
+    """
+    return ret.splitlines()
+  ret = f"""
+    @{arg2}
+    D=A
+    @{section}
+    A=D+M
+    M=M+1
+  """
+  return ret.splitlines()
+
+def cmd_dec(section:string,arg2:int,source:string):
+  if arg2==0:
+    ret = f"""
+      @{section}
+      M=M-1
+    """
+    return ret.splitlines()
+  if arg2==1:
+    ret = f"""
+      @{section}
+      A=M+1
+      M=M-1
+    """
+    return ret.splitlines()
+  ret = f"""
+    @{arg2}
+    D=A
+    @{section}
+    A=D+M
+    M=M-1
+  """
+  return ret.splitlines()
 
 
 """
@@ -504,6 +549,34 @@ def cmd_if_goto(lbl:string):
 
 
 """
+store nArgs in R13
+store address for fName in R14
+store return address in D
+(label return address)
+"""
+def cmd_call(fName:string,nArgs:int,i:int):
+  ret =f"""
+    @{nArgs}
+    D=A
+    @R13  //store number of arguments into R13
+    M=D
+    
+    @{fName}
+    D=A
+    @R14  //store number of arguments into R14
+    M=D
+    
+    @return_from_{fName}_{i}
+    D=A
+
+    @global_call
+    0;JMP 
+    (return_from_{fName}_{i})
+  """
+  return ret.splitlines()
+
+
+"""
 push returnAddress  //use a label declared below
 push LCL            //saves LCL into stack
 push ARG            //saves ARG
@@ -512,13 +585,16 @@ push THAT           //saves THAT
 ARG = SP-5-nArgs    //reposition ARG
 LCL = SP            //reposition LCL
 goto functionName   //jump to function label
-(returnAddress)     //create label for return address
+
+before calling the following registers needs to be prefilled:
+D   = return address
+R13 = nArgs
+R14 = functionAddress
 """
-def cmd_call(fName:string,nArgs:int,i:int):
+def cmd_call_global():
   ret=f"""
-    @return_from_{fName}_{i}
-    D=A
-    @SP   //push returnAddress
+    (global_call)
+    @SP   //push returnAddress stored into D already
     A=M
     M=D
     
@@ -552,18 +628,19 @@ def cmd_call(fName:string,nArgs:int,i:int):
     @LCL  //LCL = SP (reposition LCL)
     M=D
 
-    @{5+nArgs} //ARG = SP-5-nArgs   (reposition ARG)
+    
+    @5 
     D=A
+    @R13    //R13 contains the number of arguments
+    D=D+M   //D = 5+nArgs
     @SP
     A=M
-    D=A-D
+    D=A-D   //ARG = SP-5-nArgs   (reposition ARG)
     @ARG
     M=D
         
-    @{fName}
+    @R14     //R14 points to function address
     0;JMP    //jump to function label
-
-    (return_from_{fName}_{i})
   """
   return ret.splitlines()
 
@@ -595,8 +672,9 @@ ARG  = *(endFrame-3)
 LCL  = *(endFrame-4)
 goto retAddr
 """
-def cmd_return():
+def cmd_return_global():
   ret = """
+    (global_return)
     @LCL  
     D=M
     @R13  //save endFrame-1
@@ -662,6 +740,9 @@ def bootstrap():
     M=D
   """
   return ret.splitlines()
+
+def cmd_return():
+  return cmd_jmp("global_return")
 
 def cmd_jmp(lbl:string):
   ret = f"""

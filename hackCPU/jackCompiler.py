@@ -1,20 +1,8 @@
 
 
-import os
-import string
+from utils.JackAnalyzer import JackAnalyzer
+from utils.utils import getJackFiles
 
-from utils import JackAnalyzer
-
-
-
-def getJackFiles(srcFolder:string):
-  ret =[]
-   # r=root, d=directories, f = files
-  for r, d, f in os.walk(srcFolder):
-    for file in f:
-      if file.endswith(".jack"):
-          ret.append(os.path.join(r, file))
-  return ret
 
 
 if __name__ == '__main__':

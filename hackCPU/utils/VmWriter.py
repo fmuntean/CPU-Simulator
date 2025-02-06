@@ -106,4 +106,15 @@ class VmWriter:
       self.outFile.write(f"function {name} {nArgs}{self.tab}// {comment}\n")
     else:
       self.outFile.write(f"function {name} {nArgs}\n")
+
+  def writeDecrement(self,segment:string,index:int,comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"{self.tab}dec {segment} {index}{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"{self.tab}dec {segment} {index}\n")
     
+  def writeIncrement(self,segment:string,index:int,comment=None):
+    if comment and self.logLevel>0:
+      self.outFile.write(f"{self.tab}inc {segment} {index}{self.tab}// {comment}\n")
+    else:
+      self.outFile.write(f"{self.tab}inc {segment} {index}\n")

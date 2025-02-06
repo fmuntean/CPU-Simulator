@@ -1,6 +1,8 @@
 import string
 
-from utils import CompilationEngine, JackTokenizer, VmWriter
+from utils.CompilationEngine import CompilationEngine
+from utils.JackTokenizer import JackTokenizer
+from utils.VmWriter import VmWriter
 
 
 class JackAnalyzer:
@@ -8,7 +10,7 @@ class JackAnalyzer:
   def __init__(self,srcFile:string,vmFile):
     self.tknzr = JackTokenizer(srcFile)
     self.vm = VmWriter(vmFile)
-    self.ce = CompilationEngine(self.tknzr,self.vm)
+    self.ce = CompilationEngine(self.tknzr,self.vm,version=2)
     self.srcFile = srcFile
 
   #Version 0: Designed to test the JackTokenizer

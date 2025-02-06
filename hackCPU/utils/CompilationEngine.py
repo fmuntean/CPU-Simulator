@@ -1,13 +1,15 @@
 import string
 
-from utils import JackTokenizer, SymbolTable, VmWriter
+from utils.JackTokenizer import JackTokenizer
+from utils.SymbolTable import SymbolTable
+from utils.VmWriter import VmWriter
 
 
 class CompilationEngine:
-  def __init__(self,tknzr:JackTokenizer, vm:VmWriter):
+  def __init__(self,tknzr:JackTokenizer, vm:VmWriter,version=1):
     self.tknzr = tknzr
     self.vm = vm
-    
+    self.version = version
     self.labels = {}
     pass
 
@@ -178,13 +180,23 @@ class CompilationEngine:
   # statements: statement *
   # statement: letStatement | if Statement | whileStatement | doStatement | returnStatement
   def compileStatements(self):
-    statements = {
-      'let': self.compileLet,
-      'do' : self.compileDo,
-      'if' : self.compileIf,
-      'while': self.compileWhile,
-      'return': self.compileReturn
-    }
+    if self.version==1:
+      statements = {
+        'let': self.compileLet,
+        'do' : self.compileDo,
+        'if' : self.compileIf,
+        'while': self.compileWhile,
+        'return': self.compileReturn
+      }
+    if self.version==2:
+      statements = {
+        'let': self.compileLet,
+        'do' : self.compileDo_v2,
+        'if' : self.compileIf,
+        'while': self.compileWhile,
+        'return': self.compileReturn_v2
+      }
+    
     cmd = self.tknzr.tokenVal()
     while self.tknzr.tokenVal() in statements.keys():
       self.vm.writeComment(self.tknzr.getLine(self.tknzr.token))
@@ -237,6 +249,16 @@ class CompilationEngine:
     self.eat(';')
     
     self.vm.writePop('temp',0) # we need to extract the return 0 from the do call 
+    return
+  
+  def compileDo_v2(self):
+    tkn = self.eat('do')
+
+    self.compileExpression()
+
+    self.eat(';')
+    
+    self.vm.writeDecrement('SP',0) # we just decrement SP as we do not need the value
     return
 
   # ifStatement: 'if' '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
@@ -303,6 +325,16 @@ class CompilationEngine:
     self.vm.writeReturn()
     return
   
+   # returnStatement: 'return' expression? ';'
+  def compileReturn_v2(self):
+    tkn = self.eat('return')
+    if tkn.val != ';':
+      self.compileExpression()
+    else:
+      self.vm.writeIncrement('SP',0) # we just increment SP as we don't care whats inside
+    self.eat(';')
+    self.vm.writeReturn()
+    return
 
   ################################################################
   #               EXPRESSION COMPILATION                         #

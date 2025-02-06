@@ -39,14 +39,14 @@ class HackAssembler:
         lst.write("\t\t\t VARIABLES\n")
         lst.write(f"{'-'*80}\n")
         for i in range(len(HackAssembler.vars)):
-            lst.write(f"0x{i:04X}\t{HackAssembler.vars[i]}\n")
+            lst.write(f"{i:05d}\t{HackAssembler.vars[i]}\n")
 
     def listLabels(lst):
         lst.write(f"\n{'-'*80}\n")
         lst.write("\t\t\t LABELS\n")
         lst.write(f"{'-'*80}\n")
         for k,v in HackAssembler.labels.items():
-            lst.write(f"0x{v:04X}\t{k}\n")
+            lst.write(f"{v:05d}\t{k}\n")
 
 
     def getOpcodeA(line):
@@ -92,22 +92,22 @@ class HackAssembler:
                 continue
             if l.startswith('('):
                 opcode = HackAssembler.labels[f"@{l[1:-1]}"]
-                lst.write(f"{addr:04X}\t{l}\n")
+                lst.write(f"{addr:05d}\t{l}\n")
                 continue
             if l.startswith('//'):
-                lst.write(line)
+                lst.write(f"\n\t\t{line}")
                 rom.write(line.lstrip())
                 continue
             if l.startswith('@'):
                 opcode = HackAssembler.getOpcodeA(HackAssembler.cleanComments(l))  
                 rom.write(f"0x{opcode:04X}\n")
-                lst.write(f"{addr:04X}\t0x{opcode:04X}\t{l}\n")
+                lst.write(f"{addr:05d}\t0x{opcode:04X}\t{l}\n")
                 addr+=1
             else:
                 instr = opcode_C()
                 opcode = instr.getOpcode(HackAssembler.cleanComments(l))
                 rom.write(f"0x{opcode:04X}\n")
-                lst.write(f"{addr:04X}\t0x{opcode:X}\t{l}\n")
+                lst.write(f"{addr:05d}\t0x{opcode:X}\t{l}\n")
                 addr+=1
         pass
 
