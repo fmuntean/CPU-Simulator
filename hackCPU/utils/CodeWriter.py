@@ -40,7 +40,8 @@ map_section={
   'pointer': 3,
   'static':'static',
   None:None,
-  '':''
+  '':'',
+  'SP':'SP'
 }
 
 

@@ -13,7 +13,7 @@ if __name__ == '__main__':
   #srcFolder = 'lab11/ConvertToBin'
   #srcFolder = 'lab11/Average'
   #srcFolder = 'lab11/ComplexArrays'
-  srcFolder = 'lab11/Pong'
+  
   #srcFolder = 'lab11/Square'
   srcFolder = 'lab12/ArrayTest'
   srcFolder = 'lab12/KeyboardTest'
@@ -22,9 +22,12 @@ if __name__ == '__main__':
   srcFolder = 'lab12/outputTest'
   srcFolder = 'lab12/ScreenTest'
   srcFolder = 'lab12/StringTest'
-  
+  srcFolder = 'lab11/Pong'
 
-  includeFiles = ['lab12/String.jack','lab12/Output.jack','lab12/Memory.jack','lab12/Sys.jack'] #,'lab12/Screen.jack','lab12/Math.jack'] ,'Lab12/Array.jack','lab12/Keyboard.jack']
+  includeFiles = [
+    'lab12/String.jack','lab12/Output.jack','lab12/Memory.jack',
+    'lab12/Sys.jack','lab12/Screen.jack','lab12/Math.jack',
+    'Lab12/Array.jack','lab12/Keyboard.jack']
 
 
   if srcFolder.endswith('.jack'):

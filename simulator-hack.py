@@ -38,7 +38,7 @@ if __name__ == '__main__':
     # Start the screen in a separate thread
    screen.start()
    
-   loadMem(rom,"hackCPU/pong/pong.hack.rom")
+   loadMem(rom,"hackCPU/lab11/pong/pong.rom")
    #loadMem(rom,"hackCPU/Lab06/Rect.rom")
    #loadMem(rom,"hackCPU/hackCPU.rom")
    cpu.reset()

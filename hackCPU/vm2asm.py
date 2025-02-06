@@ -52,7 +52,7 @@ if __name__ == '__main__':
       with open(asmFile,mode="w") as asm:
         parser = Parser()
         writer = CodeWriter(asm)
-        translator = VMTranslator(parser,writer,version=2)
+        translator = VMTranslator(parser,writer,version=4)
         compileFile(vmFolder,asm)
     else: # we have a folder
       asmFile = vmFolder+'/'+vmFolder.replace('/','\\').split(os.path.sep)[-1]+".asm"

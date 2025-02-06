@@ -48,7 +48,7 @@ cd_le
 '''
 
 
-def cmd_inc(section:string,arg2:int,source:string):
+def cmd_inc(section:string,arg2:int):
   if arg2==0:
     ret = f"""
       @{section}
@@ -71,7 +71,7 @@ def cmd_inc(section:string,arg2:int,source:string):
   """
   return ret.splitlines()
 
-def cmd_dec(section:string,arg2:int,source:string):
+def cmd_dec(section:string,arg2:int):
   if arg2==0:
     ret = f"""
       @{section}
@@ -159,7 +159,7 @@ def cmd_pop_from_D(section:string,arg2:int,source:string):
 """
  just increment the current value in stack
 """
-def cmd_inc():
+def cmd_inc_SP_VAL():
   ret = """
     @SP
     A=M-1
@@ -171,7 +171,7 @@ def cmd_inc():
 """
  just decrement the current value in stack
 """
-def cmd_dec():
+def cmd_dec_SP_VAL():
   ret = """
     @SP
     A=M-1
@@ -640,6 +640,7 @@ def cmd_call_global():
     M=D
         
     @R14     //R14 points to function address
+    A=M
     0;JMP    //jump to function label
   """
   return ret.splitlines()
